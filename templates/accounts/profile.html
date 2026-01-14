@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Личный кабинет — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Личный кабинет</h1>
+      <a href="{% url 'accounts:profile_edit' %}" 
+         class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-center w-full sm:w-auto">
+        Редактировать профиль
+      </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+        <!-- Основные данные -->
+        <div class="space-y-6">
+          <div>
+            <p class="text-sm text-gray-600">Email</p>
+            <p class="text-xl font-medium text-gray-900 break-all">{{ user.email }}</p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-600">Полное имя</p>
+            <p class="text-xl font-medium text-gray-900">
+              {{ user.name|default:"—" }} {{ user.lname|default:"" }}
+            </p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-600">Телефон</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.phone|default:"Не указан" }}</p>
+          </div>
+        </div>
+
+        <!-- Дополнительная информация -->
+        <div class="space-y-6">
+          <div>
+            <p class="text-sm text-gray-600">Роль</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.get_role_display }}</p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-600">Дата регистрации</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.date_joined|date:"d.m.Y H:i" }}</p>
+          </div>
+
+          <div>
+            <p class="text-sm text-gray-600">Последний вход</p>
+            <p class="text-xl font-medium text-gray-900">
+              {% if user.last_login %}
+                {{ user.last_login|date:"d.m.Y H:i" }}
+              {% else %}
+                Никогда
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Кнопка выхода -->
+      <div class="mt-10 text-center">
+        <a href="{% url 'accounts:logout' %}" 
+           class="inline-block text-red-600 hover:text-red-800 font-medium text-lg transition">
+          Выйти из аккаунта
+        </a>
+      </div>
+    </div>
+
+    <!-- Заглушка для будущих функций -->
+    <div class="mt-10 bg-white rounded-xl shadow-md p-8 text-center text-gray-600">
+      <h2 class="text-2xl font-semibold mb-4">Ваши данные скоро появятся здесь</h2>
+      <p class="mb-4">В зависимости от роли:</p>
+      <ul class="max-w-md mx-auto text-left list-disc pl-6 space-y-2">
+        <li>Для агентов — список купленных/забронированных билетов</li>
+        <li>Для вендоров — управление объектами, билетами, статистикой</li>
+        <li>История платежей и уведомления</li>
+      </ul>
+    </div>
+  </div>
+{% endblock %}

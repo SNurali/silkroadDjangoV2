@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактирование профиля — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-8 text-gray-900">Редактирование профиля</h1>
+
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Email (нельзя изменить)</label>
+        <p class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-100 shadow-sm sm:text-sm px-4 py-3 text-gray-700 cursor-not-allowed">
+          {{ user.email }}
+        </p>
+      </div>
+
+      <div>
+        <label for="id_name" class="block text-sm font-medium text-gray-700">Имя *</label>
+        {{ form.name }}
+      </div>
+
+      <div>
+        <label for="id_lname" class="block text-sm font-medium text-gray-700">Фамилия</label>
+        {{ form.lname }}
+      </div>
+
+      <div>
+        <label for="id_phone" class="block text-sm font-medium text-gray-700">Телефон</label>
+        {{ form.phone }}
+      </div>
+
+      <button type="submit" 
+              class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium text-lg">
+        Сохранить изменения
+      </button>
+    </form>
+
+    <p class="text-center mt-6">
+      <a href="{% url 'accounts:profile' %}" class="text-gray-600 hover:text-gray-800">
+        ← Вернуться в кабинет
+      </a>
+    </p>
+  </div>
+{% endblock %}

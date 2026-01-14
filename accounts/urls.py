@@ -1,15 +1,28 @@
 from django.urls import path
-from .views import (
-    LoginView,
-    AdminOnlyView,
-    VendorOnlyView,
-    AgentOnlyView,
-)
+from django.contrib.auth import views as auth_views
+
+from . import views
+
+app_name = 'accounts'
 
 urlpatterns = [
-    path("login/", LoginView.as_view(), name="login"),
+    path('login/',
+         views.LoginView.as_view(),
+         name='login'),
 
-    path("admin-only/", AdminOnlyView.as_view()),
-    path("vendor-only/", VendorOnlyView.as_view()),
-    path("agent-only/", AgentOnlyView.as_view()),
+    path('logout/',
+         views.LogoutView.as_view(),
+         name='logout'),
+
+    path('register/',
+         views.RegisterView.as_view(),
+         name='register'),
+
+    path('profile/',
+         views.ProfileView.as_view(),
+         name='profile'),
+
+    path('profile/edit/',
+         views.ProfileUpdateView.as_view(),
+         name='profile_edit'),
 ]
