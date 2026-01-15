@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -61,11 +63,7 @@ class Sight(models.Model):
     status = models.CharField(
         max_length=20,
         default='active',
-        choices=[
-            ('active', _('Активен')),
-            ('inactive', _('Неактивен')),
-            ('pending', _('На модерации')),
-        ],
+        choices=[('active', _('Активен')), ('inactive', _('Неактивен')), ('pending', _('На модерации'))],
         verbose_name=_('статус')
     )
 
@@ -73,12 +71,10 @@ class Sight(models.Model):
     is_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для местных'))
 
     max_capacity = models.IntegerField(null=True, blank=True, verbose_name=_('макс. вместимость'))
-    opening_times = models.JSONField(default=dict, blank=True, verbose_name=_('время работы'))
-    extra_services = models.JSONField(default=dict, blank=True, verbose_name=_('доп. услуги'))
-    required_conditions = models.JSONField(default=dict, blank=True, verbose_name=_('условия'))
-
-    enable_tickets = models.BooleanField(default=False, verbose_name=_('билеты включены'))
-
+    opening_times = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('время работы'))
+    extra_services = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('доп. услуги'))
+    required_conditions = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('требуемые условия'))
+    enable_tickets = models.BooleanField(default=False, verbose_name=_('включены билеты'))
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -100,9 +96,17 @@ class Sight(models.Model):
         return self.name
 
     def get_images_list(self):
+        """Возвращает список изображений с правильным префиксом /media/ (без дублирования sights/)"""
         if not self.images:
             return []
-        return [img.strip() for img in self.images.split(',') if img.strip()]
+
+        raw_list = [img.strip() for img in self.images.split(',') if img.strip()]
+
+        # Добавляем /media/ только к относительным путям, не трогаем http и /media/
+        return [
+            f"/media/{img.lstrip('/')}" if not img.startswith(('/media/', 'http')) else img
+            for img in raw_list
+        ]
 
 
 class SightFacility(models.Model):
@@ -165,6 +169,18 @@ class Ticket(models.Model):
         verbose_name = _('билет')
         verbose_name_plural = _('билеты')
         ordering = ['-created_at']
+
+    def calculate_total(self):
+        """Расчёт суммы в зависимости от роли пользователя"""
+        if not self.sight:
+            return Decimal('0')
+
+        # Пример: можно добавить логику по роли пользователя
+        user = self.created_by
+        if user and user.role == 'agent':  # или другая логика
+            return self.sight.is_local * self.total_qty
+
+        return self.sight.is_foreg * self.total_qty
 
     def __str__(self) -> str:
         return f'Билет #{self.id} — {self.sight}'

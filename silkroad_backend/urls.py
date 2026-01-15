@@ -11,18 +11,14 @@ from rest_framework_simplejwt.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Публичные страницы
     path('', include('hotels.urls')),
-
-    # Аутентификация
     path('accounts/', include('accounts.urls')),
 
-    # API JWT
+    # JWT-токены
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
-# Обслуживание статики и медиа в режиме разработки
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

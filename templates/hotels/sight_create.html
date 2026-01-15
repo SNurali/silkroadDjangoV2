@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать достопримечательность — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="max-w-xl mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-8 text-gray-900">Создать достопримечательность</h1>
+
+    {% if form.errors %}
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
+        <strong>Ошибка:</strong> Проверьте введённые данные.
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+      {% csrf_token %}
+
+      <div>
+        <label for="id_name" class="block text-sm font-medium text-gray-700">Название *</label>
+        {{ form.name }}
+      </div>
+
+      <div>
+        <label for="id_sh_description" class="block text-sm font-medium text-gray-700">Короткое описание</label>
+        {{ form.sh_description }}
+      </div>
+
+      <div>
+        <label for="id_description" class="block text-sm font-medium text-gray-700">Полное описание</label>
+        {{ form.description }}
+      </div>
+
+      <div>
+        <label for="id_address" class="block text-sm font-medium text-gray-700">Адрес</label>
+        {{ form.address }}
+      </div>
+
+      <div>
+        <label for="id_geolocation" class="block text-sm font-medium text-gray-700">Геолокация (широта,долгота)</label>
+        {{ form.geolocation }}
+      </div>
+
+      <div>
+        <label for="id_category" class="block text-sm font-medium text-gray-700">Категория</label>
+        {{ form.category }}
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="id_is_local" class="block text-sm font-medium text-gray-700">Цена для местных (сум)</label>
+          {{ form.is_local }}
+        </div>
+        <div>
+          <label for="id_is_foreg" class="block text-sm font-medium text-gray-700">Цена для иностранцев (сум)</label>
+          {{ form.is_foreg }}
+        </div>
+      </div>
+
+      <div>
+        <label for="id_images" class="block text-sm font-medium text-gray-700">Фотографии (несколько файлов)</label>
+        {{ form.images }}
+      </div>
+
+      <button type="submit" 
+              class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium text-lg">
+        Создать
+      </button>
+    </form>
+
+    <p class="text-center mt-6">
+      <a href="{% url 'accounts:profile' %}" class="text-gray-600 hover:text-gray-800">
+        ← Вернуться в кабинет
+      </a>
+    </p>
+  </div>
+{% endblock %}

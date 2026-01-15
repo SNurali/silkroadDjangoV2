@@ -2,6 +2,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     {% for sight in sights %}
       <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+        <!-- Фото -->
         {% with images=sight.get_images_list %}
           {% if images %}
             <div class="h-48 overflow-hidden">
@@ -10,6 +11,7 @@
                 alt="{{ sight.name }}" 
                 class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 loading="lazy"
+                onerror="this.src='https://via.placeholder.com/400x300?text=Фото+отсутствует';"
               >
             </div>
           {% else %}
@@ -61,7 +63,6 @@
   </div>
 
   {% if is_paginated %}
-    <!-- Пагинация тоже можно сделать htmx, но пока оставляем классическую -->
     <div class="mt-10 flex justify-center">
       <nav class="inline-flex rounded-md shadow">
         {% if page_obj.has_previous %}

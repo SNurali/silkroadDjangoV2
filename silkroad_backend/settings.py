@@ -7,11 +7,18 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-change-me'
+# ───────────────────────────────────────────────
+# Security
+# ───────────────────────────────────────────────
 
-DEBUG = True
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+
+# ───────────────────────────────────────────────
+# Applications
+# ───────────────────────────────────────────────
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,19 +28,30 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'rest_framework',
-    'rest_framework_simplejwt.token_blacklist',
+    # CORS
+    'corsheaders',
 
-    'silkroad_backend.apps.SilkroadBackendConfig',  # полный путь к custom AppConfig для регистрации команд
+    # Third-party
+    'rest_framework',
+    'rest_framework_simplejwt',
+
+    # Local apps
     'accounts',
     'locations',
     'vendors',
     'hotels',
+
+    'silkroad_backend.apps.SilkroadBackendConfig',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
 
+# ───────────────────────────────────────────────
+# Middleware  ⚠️ ВАЖЕН ПОРЯДОК
+# ───────────────────────────────────────────────
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',      # ← ОБЯЗАТЕЛЬНО ПЕРВЫМ
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -42,7 +60,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
+# ───────────────────────────────────────────────
+# URLs / WSGI
+# ───────────────────────────────────────────────
+
 ROOT_URLCONF = 'silkroad_backend.urls'
+WSGI_APPLICATION = 'silkroad_backend.wsgi.application'
+
+# ───────────────────────────────────────────────
+# Templates
+# ───────────────────────────────────────────────
 
 TEMPLATES = [
     {
@@ -60,7 +87,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'silkroad_backend.wsgi.application'
+# ───────────────────────────────────────────────
+# Database
+# ───────────────────────────────────────────────
 
 DATABASES = {
     'default': {
@@ -76,36 +105,92 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = []
+# ───────────────────────────────────────────────
+# Password validation
+# ───────────────────────────────────────────────
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
+    },
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# ───────────────────────────────────────────────
+# Localization
+# ───────────────────────────────────────────────
 
 LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-STATIC_ROOT = BASE_DIR / "staticfiles"  # сюда будет собираться статика для продакшена
+# ───────────────────────────────────────────────
+# Static & Media
+# ───────────────────────────────────────────────
 
-# Media files (загруженные пользователями фото, файлы)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ───────────────────────────────────────────────
+# REST Framework
+# ───────────────────────────────────────────────
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',  # ← ДЛЯ REACT (иначе 401)
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 12,
 }
 
-from rest_framework_simplejwt.settings import api_settings
+# ───────────────────────────────────────────────
+# JWT
+# ───────────────────────────────────────────────
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# ───────────────────────────────────────────────
+# ✅ CORS SETTINGS (КЛЮЧЕВОЕ)
+# ───────────────────────────────────────────────
+
+CORS_ALLOW_ALL_ORIGINS = True  # ← DEV-режим (можно безопасно)
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'authorization',
+    'content-type',
+    'accept',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# ───────────────────────────────────────────────
+# Billing
+# ───────────────────────────────────────────────
+
+YAGONA_BILLING_KLIENT = "silkroad"
+YAGONA_BILLING_KLIENT_SECRET = "84afc0e173cf4e5bbf172d5fc2f0b1341748000565676"
+YAGONA_BILLING_MERCHANT_ID = "mrt_2xUlMPmoEcHKPRTtfoR1M8CKRKg"
+FAKE_PAYMENT = True

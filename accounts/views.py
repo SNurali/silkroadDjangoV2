@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 
 from django.contrib.auth import views as auth_views
 
+from hotels.models import Ticket
 from .forms import RegisterForm, ProfileForm
 from .models import User
 
@@ -51,7 +52,7 @@ class LogoutView(auth_views.LogoutView):
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     """
-    Просмотр личного кабинета пользователя.
+    Личный кабинет пользователя.
     """
     template_name = 'accounts/profile.html'
     login_url = reverse_lazy('accounts:login')
@@ -60,6 +61,13 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = _('Личный кабинет')
         context['user'] = self.request.user
+
+        # Список купленных билетов (только для роли agent)
+        if self.request.user.role == 'agent':
+            context['tickets'] = Ticket.objects.filter(created_by=self.request.user).select_related('sight', 'vendor').order_by('-created_at')
+        else:
+            context['tickets'] = None  # для других ролей — можно потом расширить
+
         return context
 
 

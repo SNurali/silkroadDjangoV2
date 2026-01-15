@@ -8,7 +8,7 @@
     <p class="text-lg text-gray-600">Откройте для себя уникальные места нашей страны</p>
   </div>
 
-  <!-- Фильтры -->
+  <!-- Фильтры (остаются на месте, не дублируются) -->
   <div class="bg-white rounded-xl shadow-md p-6 mb-8">
     <form hx-get="{% url 'hotels:sight_partial_list' %}" 
           hx-target="#results" 
@@ -48,7 +48,7 @@
     </form>
   </div>
 
-  <!-- Результаты (заменяются htmx) -->
+  <!-- Только карточки (заменяются htmx) -->
   <div id="results">
     {% include 'hotels/partials/sight_list_partial.html' %}
   </div>
