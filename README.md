@@ -45,6 +45,29 @@ SilkRoad is a comprehensive Tourism & Hotel Booking platform connecting traveler
 
 ---
 
+## 🐳 Database Setup (Docker)
+
+This project uses **PostgreSQL** running in a Docker container.
+
+### Start Database
+```bash
+docker compose up -d
+```
+This will start the Postgres server on port `5432`.
+
+### Stop Database
+```bash
+docker compose down
+```
+
+### Credentials
+- **DB**: `silkroad`
+- **User**: `silkroad`
+- **Pass**: `silkroad`
+- **Port**: `5432`
+
+---
+
 ## ⚙️ Installation & Setup
 
 ### Prerequisites
