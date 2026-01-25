@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load i18n static %}  <!-- все load после extends -->
+
+{% block title %}{{ sight.name }} — SilkRoad{% endblock %}
+
+{% block extra_head %}
+  <!-- HTMX + CSS для галереи -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <style>
+    .gallery-img {
+      transition: transform 0.3s ease;
+    }
+    .gallery-img:hover {
+      transform: scale(1.05);
+    }
+    .qty-input {
+      transition: all 0.2s ease;
+    }
+    .qty-input:focus {
+      ring: 2px solid #3b82f6;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="mb-8">
+    <a href="{% url 'hotels:sight_list' %}" class="text-primary hover:underline mb-2 inline-block">
+      ← Назад к списку
+    </a>
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900">{{ sight.name }}</h1>
+    {% if sight.sh_description %}
+      <p class="text-xl text-gray-600 mt-2">{{ sight.sh_description }}</p>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Основная информация + галерея -->
+    <div class="lg:col-span-2 space-y-8">
+      <!-- Галерея изображений -->
+      {% if sight.images_rel.exists %}
+        <div class="bg-white rounded-xl shadow-md p-4">
+          <h2 class="text-2xl font-semibold mb-4">Фотографии</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {% for img in sight.images_rel.all %}
+              <div class="aspect-square overflow-hidden rounded-lg">
+                <img 
+                  src="{{ img.image.url }}" 
+                  alt="{{ sight.name }} фото {{ forloop.counter }}" 
+                  class="w-full h-full object-cover gallery-img cursor-pointer"
+                  loading="lazy"
+                >
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="bg-gray-100 rounded-xl p-8 text-center text-gray-500">
+          Нет доступных фотографий
+        </div>
+      {% endif %}
+
+      <!-- Описание -->
+      {% if sight.description %}
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <h2 class="text-2xl font-semibold mb-4">Описание</h2>
+          <div class="prose max-w-none text-gray-700">
+            {{ sight.description|safe }}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Удобства / услуги -->
+      {% if sight.facilities.exists %}
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <h2 class="text-2xl font-semibold mb-4">Удобства и услуги</h2>
+          <ul class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {% for facility in sight.facilities.all %}
+              <li class="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+                {% if facility.icon %}
+                  <img src="{{ facility.icon.url }}" alt="" class="w-6 h-6">
+                {% endif %}
+                <span>{{ facility.name }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Боковая панель: цены, билеты, локация -->
+    <div class="space-y-6">
+      <!-- Цены -->
+      <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+        <h2 class="text-2xl font-semibold mb-4">Стоимость входа</h2>
+
+        <div class="space-y-4">
+          {% if sight.is_local > 0 %}
+            <div class="flex justify-between items-center border-b pb-3">
+              <span class="text-gray-700">Для граждан Узбекистана</span>
+              <span class="font-bold text-green-600 text-xl">{{ sight.is_local|floatformat:0 }} сум</span>
+            </div>
+          {% endif %}
+
+          {% if sight.is_foreg > 0 %}
+            <div class="flex justify-between items-center border-b pb-3">
+              <span class="text-gray-700">Для иностранных граждан</span>
+              <span class="font-bold text-blue-600 text-xl">{{ sight.is_foreg|floatformat:0 }} сум</span>
+            </div>
+          {% endif %}
+
+          {% if sight.is_local == 0 and sight.is_foreg == 0 %}
+            <p class="text-gray-500">Стоимость не указана</p>
+          {% endif %}
+        </div>
+
+        {% if sight.enable_tickets %}
+          <div class="mt-6">
+            <a href="#buy-ticket-section" class="block w-full bg-primary text-white text-center py-4 rounded-lg font-medium hover:bg-blue-700 transition">
+              Купить билет онлайн
+            </a>
+            <p class="text-center text-sm text-gray-500 mt-2">
+              Быстрая покупка через сайт
+            </p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Локация -->
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Местоположение</h2>
+        <p class="text-gray-700 mb-3">
+          {% if sight.address %}
+            {{ sight.address }}
+          {% else %}
+            Адрес не указан
+          {% endif %}
+        </p>
+        {% if sight.geolocation %}
+          <p class="text-sm text-gray-600">
+            Координаты: {{ sight.geolocation }}
+          </p>
+          <div class="mt-4 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+            <span class="text-gray-500">Карта будет здесь (Yandex Maps / Google Maps)</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if sight.enable_tickets %}
+    <!-- ТВОЙ ФРАГМЕНТ ИНТЕГРИРОВАН С ПОЛНОЙ ФУНКЦИОНАЛЬНОСТЬЮ -->
+    <div id="buy-ticket-section" class="mt-10 border-t pt-10">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Купить билет</h2>
+
+      <form method="post" action="{% url 'hotels:ticket_buy' sight.pk %}" class="space-y-6 bg-white rounded-xl shadow-md p-6 lg:p-8 max-w-2xl mx-auto">
+        {% csrf_token %}
+        <input type="hidden" name="sight_id" value="{{ sight.pk }}">
+
+        <div class="flex items-center gap-4">
+          <label for="id_total_qty" class="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Количество билетов:
+          </label>
+          {{ form.total_qty }}
+        </div>
+
+        <div class="text-xl font-semibold text-gray-900">
+          Итого: <span id="total-amount" class="text-primary font-bold">0 сум</span>
+          {% if user.is_authenticated %}
+            <span class="text-sm text-gray-500 block">для {{ user.get_full_name|default:user.username }}</span>
+          {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        {% if form.total_qty.errors %}
+          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {{ form.total_qty.errors }}
+          </div>
+        {% endif %}
+
+        <button type="submit" 
+                class="w-full bg-primary hover:bg-blue-700 text-white py-4 rounded-lg font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300">
+          Купить билет
+        </button>
+      </form>
+
+      <p class="mt-6 text-sm text-gray-500 text-center max-w-md mx-auto">
+        Билет будет отправлен на вашу почту после успешной оплаты. Мгновенное подтверждение!
+      </p>
+    </div>
+  {% endif %}
+
+{% endblock %}

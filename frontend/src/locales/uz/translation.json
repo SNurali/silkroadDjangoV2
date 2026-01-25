@@ -1,0 +1,20 @@
+{
+    "home": {
+        "hero_title": "Eng yaxshi mehmonxonalarni toping",
+        "hero_subtitle": "Eng yaxshi joylarni kashf eting",
+        "tab_hotels": "Mehmonxonalar",
+        "tab_flights": "Uchishlar",
+        "tab_tours": "Sayohatlar",
+        "tab_cabs": "Taksilar",
+        "search_location": "Manzil",
+        "search_placeholder_location": "Shahar yoki manzil kiriting",
+        "search_btn": "Qidirish",
+        "featured_title": "Tavsiya etilgan mehmonxonalar",
+        "featured_subtitle": "Tanlangan tanlovlar",
+        "search_dates": "Sanalar",
+        "search_guests": "Mehmonlar",
+        "guests_2_1": "2 Mehmon, 1 Xona",
+        "guests_1_1": "1 Mehmon, 1 Xona",
+        "guests_family": "Oila (2+1)"
+    }
+}

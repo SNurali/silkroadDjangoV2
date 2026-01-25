@@ -1,0 +1,416 @@
+from rest_framework import viewsets, permissions, status, views
+from rest_framework.response import Response
+from rest_framework.decorators import action
+
+from .models import Vendor
+from .serializers import VendorDashboardSerializer, VendorHotelSerializer, VendorSightSerializer
+from hotels.models import Hotel, Sight, Ticket, Booking
+
+class IsVendorUser(permissions.BasePermission):
+    """
+    Allows access only to authenticated users who have a Vendor profile.
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and hasattr(request.user, 'vendor_profile'))
+
+class VendorDashboardView(views.APIView):
+    permission_classes = [IsVendorUser]
+
+    def get(self, request):
+        vendor = request.user.vendor_profile
+        serializer = VendorDashboardSerializer(vendor)
+        data = serializer.data
+
+        from django.db.models import Sum
+        from django.db.models.functions import TruncDate
+        from django.utils import timezone
+        from datetime import timedelta
+        from hotels.models import Hotel, Sight, Ticket, TicketDetail, Booking
+
+        # Filter Logic
+        days_param = request.query_params.get('days', '30')
+        try:
+            days = int(days_param)
+        except ValueError:
+            days = 30
+            
+        start_date = timezone.now() - timedelta(days=days)
+
+        # --- ENHANCED STATS CALCULATION (Filtered) ---
+        
+        # 1. Ticket Revenue
+        ticket_revenue = TicketDetail.objects.filter(
+            ticket__vendor=vendor,
+            ticket__is_paid=True,
+            created_at__gte=start_date
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
+        # Booking Revenue
+        booking_revenue = Booking.objects.filter(
+            hotel__vendor=vendor,
+            booking_status='confirmed',
+            created_at__gte=start_date
+        ).aggregate(total=Sum('total_price'))['total'] or 0
+        
+        total_revenue = ticket_revenue + booking_revenue
+        
+        # 2. Total Orders
+        tickets_count = Ticket.objects.filter(vendor=vendor, created_at__gte=start_date).count()
+        bookings_count = Booking.objects.filter(hotel__vendor=vendor, created_at__gte=start_date).count()
+        
+        total_orders = tickets_count + bookings_count
+        
+        # 3. Total Customers
+        ticket_customers = TicketDetail.objects.filter(ticket__vendor=vendor, created_at__gte=start_date).count()
+        total_customers = ticket_customers + bookings_count 
+
+        # 4. Active Counts (Snapshot, not filtered by date)
+        hotels_count = Hotel.objects.filter(vendor=vendor).count()
+        tours_count = Sight.objects.filter(vendor=vendor).count()
+
+        # Update stats in response
+        data['stats'] = {
+            'hotels': hotels_count,
+            'tours': tours_count,
+            'bookings_today': 0, 
+            'total_bookings': total_orders,
+            'total_customers': total_customers,
+            'total_revenue': total_revenue
+        }
+        data['balance'] = total_revenue
+
+        # --- CHART DATA ---
+        
+        # Tickets Daily
+        daily_tickets = TicketDetail.objects.filter(
+            ticket__vendor=vendor,
+            ticket__is_paid=True, 
+            created_at__gte=start_date
+        ).annotate(date=TruncDate('created_at'))\
+         .values('date')\
+         .annotate(income=Sum('amount'))\
+         .order_by('date')
+
+        # Bookings Daily
+        daily_bookings = Booking.objects.filter(
+            hotel__vendor=vendor,
+            booking_status='confirmed',
+            created_at__gte=start_date
+        ).annotate(date=TruncDate('created_at'))\
+         .values('date')\
+         .annotate(income=Sum('total_price'))\
+         .order_by('date')
+
+        # Merge Chart Data
+        income_map = {}
+        for entry in daily_tickets:
+            d = entry['date'].strftime('%d %b')
+            income_map[d] = income_map.get(d, 0) + entry['income']
+            
+        for entry in daily_bookings:
+            d = entry['date'].strftime('%d %b')
+            income_map[d] = income_map.get(d, 0) + entry['income']
+            
+        final_chart_dates = []
+        final_chart_values = []
+        
+        # Generate date labels for range
+        # If range is huge (365 days), we should group by Month. 
+        # For simplicity, if days > 60, maybe simpler labels?
+        # Let's keep daily for now but loop carefully
+        
+        step = 1
+        loop_days = days
+        if days > 60: 
+             # Too many points? ApexCharts handles it, but labels might crowd.
+             pass
+
+        for i in range(loop_days):
+            d_date = (timezone.now() - timedelta(days=(loop_days - 1) - i)).date()
+            d_str = d_date.strftime('%d %b')
+            final_chart_dates.append(d_str)
+            final_chart_values.append(income_map.get(d_str, 0))
+
+        data['chart_data'] = {
+            'dates': final_chart_dates,
+            'values': final_chart_values
+        }
+
+        # --- RECENT BOOKINGS (Filtered) ---
+        recent_tickets = list(Ticket.objects.filter(
+            vendor=vendor, is_paid=True, created_at__gte=start_date
+        ).order_by('-created_at')[:5])
+        
+        recent_hotel_bookings = list(Booking.objects.filter(
+            hotel__vendor=vendor, created_at__gte=start_date
+        ).order_by('-created_at')[:5])
+        
+        combined = []
+        for t in recent_tickets:
+            first_detail = t.details.first()
+            guest = first_detail.guest_name if first_detail else "Unknown"
+            combined.append({
+                'id': f"T-{t.id}",
+                'user': guest,
+                'service': t.sight.name if t.sight else "Tour",
+                'amount': t.total_amount,
+                'date': t.created_at,
+                'status': 'Paid'
+            })
+            
+        for b in recent_hotel_bookings:
+            combined.append({
+                'id': f"B-{b.id}",
+                'user': b.guest_name,
+                'service': b.hotel.name if b.hotel else "Hotel",
+                'amount': b.total_price,
+                'date': b.created_at,
+                'status': b.booking_status.capitalize()
+            })
+            
+        combined.sort(key=lambda x: x['date'], reverse=True)
+        data['recent_bookings'] = combined[:5]
+
+        return Response(data)
+
+class VendorSettingsView(views.APIView):
+    permission_classes = [IsVendorUser]
+
+    def get(self, request):
+        vendor = request.user.vendor_profile
+        from .serializers import VendorSettingsSerializer
+        serializer = VendorSettingsSerializer(vendor)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        vendor = request.user.vendor_profile
+        from .serializers import VendorSettingsSerializer
+        serializer = VendorSettingsSerializer(vendor, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VendorSettingsView(views.APIView):
+    permission_classes = [IsVendorUser]
+
+    def get(self, request):
+        vendor = request.user.vendor_profile
+        from .serializers import VendorSettingsSerializer
+        serializer = VendorSettingsSerializer(vendor)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        vendor = request.user.vendor_profile
+        from .serializers import VendorSettingsSerializer
+        serializer = VendorSettingsSerializer(vendor, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VendorHotelViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsVendorUser]
+    serializer_class = VendorHotelSerializer
+
+    def get_queryset(self):
+        # Filter by created_by to show only user's own items
+        return Hotel.objects.filter(created_by=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(vendor=self.request.user.vendor_profile, created_by=self.request.user)
+
+class VendorSightViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsVendorUser]
+    serializer_class = VendorSightSerializer
+
+    def get_queryset(self):
+        # Filter by created_by to show only user's own items
+        return Sight.objects.filter(created_by=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(vendor=self.request.user.vendor_profile, created_by=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='upload-image')
+    def upload_image(self, request):
+        """
+        Uploads an image separately and returns the URL.
+        Matches Laravel's postUploadImage.
+        """
+        image = request.FILES.get('image')
+        if not image:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Simple save to media/temp or just media/vendor_uploads
+        # Using a model or just FileSystemStorage would work. 
+        # For simplicity, let's use default storage mechanism if configured, or manual
+        try:
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            import os
+            
+            # Create a unique path
+            ext = image.name.split('.')[-1]
+            filename = f"vendor_uploads/{request.user.id}/{image.name}" 
+            
+            # Save
+            path = default_storage.save(filename, ContentFile(image.read()))
+            
+            # Return URL (assuming standard media setup)
+            url = default_storage.url(path)
+            
+            return Response({'success': True, 'imageUrl': url})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for Vendors to manage incoming bookings for their hotels.
+    """
+    permission_classes = [IsVendorUser]
+    # We use BookingSerializer from hotels, or a specific VendorBookingSerializer?
+    # Let's import BookingSerializer
+    from hotels.serializers import BookingSerializer
+    serializer_class = BookingSerializer
+
+    def get_queryset(self):
+        return Booking.objects.filter(hotel__vendor=self.request.user.vendor_profile).order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        booking = self.get_object()
+        if booking.booking_status == 'confirmed':
+             return Response({'detail': 'Already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
+             
+        booking.booking_status = 'confirmed'
+        
+        # New Confirmation Fields
+        from django.utils import timezone
+        booking.confirmed_by = request.user
+        booking.confirmed_at = timezone.now()
+        
+        booking.save()
+        
+        # Determine notification Link (User side)
+        user_link = "/profile/bookings"
+        
+        # Notify User
+        if booking.user:
+            from notifications.models import Notification
+            Notification.objects.create(
+                user=booking.user,
+                title="Booking Confirmed",
+                message=f"Your booking at {booking.hotel.name} has been confirmed!",
+                type="success",
+                link=user_link
+            )
+            
+        return Response({'status': 'confirmed'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        booking = self.get_object()
+        if booking.booking_status == 'cancelled':
+             return Response({'detail': 'Already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Require Reason
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({'error': 'Reason is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.booking_status = 'cancelled'
+        booking.rejection_reason = reason
+        
+        from django.utils import timezone
+        booking.confirmed_by = request.user
+        booking.confirmed_at = timezone.now()
+        
+        booking.save()
+        
+        # Notify User
+        if booking.user:
+            from notifications.models import Notification
+            Notification.objects.create(
+                user=booking.user,
+                title="Booking Declined",
+                message=f"Your booking at {booking.hotel.name} was declined. Reason: {reason}",
+                type="danger",
+                link="/profile/bookings"
+            )
+        
+        return Response({'status': 'cancelled'})
+
+class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for Vendors to manage incoming tour bookings (Tickets).
+    """
+    permission_classes = [IsVendorUser]
+    from hotels.serializers import TicketSerializer
+    serializer_class = TicketSerializer
+
+    def get_queryset(self):
+        # We might want to filter by pending? But managing all is better.
+        # Frontend can filter.
+        return Ticket.objects.filter(vendor=self.request.user.vendor_profile).order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        ticket = self.get_object()
+        if ticket.booking_status == 'confirmed':
+             return Response({'detail': 'Already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
+             
+        ticket.booking_status = 'confirmed'
+        ticket.is_valid = True
+        
+        from django.utils import timezone
+        ticket.confirmed_at = timezone.now()
+        ticket.confirmed_by = request.user
+        
+        ticket.save()
+        
+        # Notify User
+        if ticket.created_by:
+            from notifications.models import Notification
+            Notification.objects.create(
+                user=ticket.created_by,
+                title="Tour Confirmed",
+                message=f"Your tour '{ticket.sight.name}' has been confirmed! You can now download your voucher.",
+                type="success",
+                link="/profile/bookings"
+            )
+            
+        return Response({'status': 'confirmed'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        ticket = self.get_object()
+        if ticket.booking_status == 'cancelled':
+             return Response({'detail': 'Already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Require Reason
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({'error': 'Reason is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ticket.booking_status = 'cancelled'
+        ticket.is_valid = False
+        ticket.rejection_reason = reason
+        
+        from django.utils import timezone
+        ticket.confirmed_at = timezone.now()
+        ticket.confirmed_by = request.user
+        
+        ticket.save()
+        
+        # Notify User
+        if ticket.created_by:
+            from notifications.models import Notification
+            Notification.objects.create(
+                user=ticket.created_by,
+                title="Tour Declined",
+                message=f"Your tour '{ticket.sight.name}' was declined. Reason: {ticket.rejection_reason}",
+                type="danger",
+                link="/profile/bookings"
+            )
+        
+        return Response({'status': 'cancelled'})

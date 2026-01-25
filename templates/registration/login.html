@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% load i18n static %}  <!-- все load после extends -->
+
+{% block title %}{% trans "Вход" %} — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="max-w-md mx-auto mt-16 bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-8 text-gray-900">{% trans "Вход в систему" %}</h1>
+
+    {% if form.errors %}
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
+        <strong>{% trans "Ошибка:" %}</strong> {% trans "Проверьте email и пароль." %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <div>
+        <label for="id_username" class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" name="username" id="id_username" required autofocus
+               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-3"
+               placeholder="email@example.com">
+      </div>
+
+      <div>
+        <label for="id_password" class="block text-sm font-medium text-gray-700">{% trans "Пароль" %}</label>
+        <input type="password" name="password" id="id_password" required
+               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-3">
+      </div>
+
+      <button type="submit" 
+              class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium text-lg">
+        {% trans "Войти" %}
+      </button>
+    </form>
+
+    <p class="text-center mt-6 text-gray-600">
+      {% trans "Нет аккаунта?" %} 
+      <a href="{% url 'accounts:register' %}" class="text-primary hover:underline font-medium">{% trans "Зарегистрироваться" %}</a>
+    </p>
+  </div>
+{% endblock %}

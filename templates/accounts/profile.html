@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Личный кабинет — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Личный кабинет</h1>
+      <a href="{% url 'accounts:profile_edit' %}" 
+         class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-center w-full sm:w-auto">
+        Редактировать профиль
+      </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+      <!-- Основные данные пользователя -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10">
+        <div class="space-y-6">
+          <div>
+            <p class="text-sm text-gray-600">Email</p>
+            <p class="text-xl font-medium text-gray-900 break-all">{{ user.email }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Полное имя</p>
+            <p class="text-xl font-medium text-gray-900">
+              {{ user.name|default:"—" }} {{ user.lname|default:"" }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Телефон</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.phone|default:"Не указан" }}</p>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <p class="text-sm text-gray-600">Роль</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.get_role_display }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Дата регистрации</p>
+            <p class="text-xl font-medium text-gray-900">{{ user.date_joined|date:"d.m.Y H:i" }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Последний вход</p>
+            <p class="text-xl font-medium text-gray-900">
+              {% if user.last_login %}
+                {{ user.last_login|date:"d.m.Y H:i" }}
+              {% else %}
+                Никогда
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Мои билеты -->
+      {% if tickets %}
+        <div class="mt-10">
+          <h2 class="text-2xl font-semibold mb-6">Мои билеты</h2>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Достопримечательность</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Количество</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                  <th class="px-6 py-3"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {% for ticket in tickets %}
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">
+                        <a href="{% url 'hotels:sight_detail' pk=ticket.sight.pk %}" class="text-primary hover:underline">
+                          {{ ticket.sight.name }}
+                        </a>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ ticket.total_qty }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ ticket.total_amount|floatformat:0 }} сум
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      {% if ticket.is_paid %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Оплачен
+                        </span>
+                      {% else %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          Не оплачен
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ ticket.created_at|date:"d.m.Y H:i" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href="{% url 'hotels:sight_detail' pk=ticket.sight.pk %}"
+                         class="text-primary hover:text-blue-700">
+                        Подробнее
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div class="mt-10 bg-white rounded-xl shadow-md p-8 text-center text-gray-600">
+          <h2 class="text-2xl font-semibold mb-4">Мои билеты</h2>
+          <p>Пока у вас нет купленных билетов.</p>
+          <p class="mt-4">
+            <a href="{% url 'hotels:sight_list' %}" class="text-primary hover:underline">
+              Перейти к достопримечательностям
+            </a>
+          </p>
+        </div>
+      {% endif %}
+
+      <!-- Кнопка выхода -->
+      <div class="mt-10 text-center">
+        <a href="{% url 'accounts:logout' %}" 
+           class="inline-block text-red-600 hover:text-red-800 font-medium text-lg transition">
+          Выйти из аккаунта
+        </a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

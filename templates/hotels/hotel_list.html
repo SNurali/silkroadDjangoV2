@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отели — SilkRoad{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Отели Узбекистана</h1>
+        <p class="text-lg text-gray-600">Найдите идеальное место для отдыха</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="region" class="block text-sm font-medium text-gray-700 mb-1">Регион</label>
+                <select id="region" name="region"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Все регионы</option>
+                    {% for reg in regions %}
+                    <option value="{{ reg.id }}" {% if selected_region==reg.id|slugify %}selected{% endif %}>
+                        {{ reg.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                <input type="text" name="name" id="name" value="{{ name_query }}" placeholder="Поиск по названию..."
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="flex items-end">
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                    Найти
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for hotel in hotels %}
+        <div
+            class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300 flex flex-col h-full">
+            <div class="relative h-48">
+                {% with images=hotel.get_images_list %}
+                {% if images %}
+                <!-- Assuming image path is relative to MEDIA, or absolute. Legacy says 'images/default-hotel.jpg' if none. -->
+                <img src="{% if images.0 %}/media/{{ images.0 }}{% else %}{% static 'img/default-hotel.jpg' %}{% endif %}"
+                    alt="{{ hotel.name }}" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                    <span class="text-4xl">🏨</span>
+                </div>
+                {% endif %}
+                {% endwith %}
+                <div class="absolute top-2 right-2 bg-white px-2 py-1 rounded text-sm font-bold text-yellow-500 shadow">
+                    <i class="fas fa-star"></i> {{ hotel.stars }}
+                </div>
+            </div>
+
+            <div class="p-5 flex-grow flex flex-col">
+                <div class="mb-2">
+                    <span class="text-sm text-blue-600 font-semibold uppercase tracking-wider">{{
+                        hotel.region.name|default:"Uzbekistan" }}</span>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+                    <a href="{% url 'hotels:hotel_detail' hotel.pk %}" class="hover:text-blue-600 transition">
+                        {{ hotel.name }}
+                    </a>
+                </h3>
+                <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ hotel.description|striptags|truncatechars:100 }}
+                </p>
+
+                <div class="mt-auto flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-gray-500">Цена от</span>
+                        <p class="text-lg font-bold text-gray-900">
+                            {% if hotel.deposit > 0 %}
+                            ${{ hotel.deposit|floatformat:0 }}
+                            {% else %}
+                            По запросу
+                            {% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'hotels:hotel_detail' hotel.pk %}"
+                        class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
+                        Подробнее
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <p class="text-xl text-gray-500">Отели не найдены.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if selected_region %}&region={{ selected_region }}{% endif %}{% if name_query %}&name={{ name_query }}{% endif %}"
+                class="px-3 py-1 bg-white border rounded hover:bg-gray-50 text-gray-700">Пред.</a>
+            {% endif %}
+
+            <span class="px-3 py-1 text-gray-700">
+                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if selected_region %}&region={{ selected_region }}{% endif %}{% if name_query %}&name={{ name_query }}{% endif %}"
+                class="px-3 py-1 bg-white border rounded hover:bg-gray-50 text-gray-700">След.</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% if sights %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for sight in sights %}
+      <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+        <!-- Фото -->
+        {% with images=sight.get_images_list %}
+          {% if images %}
+            <div class="h-48 overflow-hidden">
+              <img 
+                src="{{ images.0 }}" 
+                alt="{{ sight.name }}" 
+                class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                loading="lazy"
+                onerror="this.src='https://via.placeholder.com/400x300?text=Фото+отсутствует';"
+              >
+            </div>
+          {% else %}
+            <div class="h-48 bg-gray-200 flex items-center justify-center">
+              <span class="text-gray-500">Нет фото</span>
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="p-5">
+          <h2 class="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+            {{ sight.name }}
+          </h2>
+
+          <p class="text-gray-600 mb-4 line-clamp-3">
+            {{ sight.sh_description|default:sight.description|truncatewords:40 }}
+          </p>
+
+          <div class="flex flex-wrap gap-3 mb-4 text-sm">
+            {% if sight.is_local > 0 %}
+              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                Местные: {{ sight.is_local }} сум
+              </span>
+            {% endif %}
+            {% if sight.is_foreg > 0 %}
+              <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                Иностранцы: {{ sight.is_foreg }} сум
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-500">
+              {% if sight.geolocation %}
+                📍 {{ sight.geolocation }}
+              {% else %}
+                📍 Адрес не указан
+              {% endif %}
+            </span>
+
+            <a href="{% url 'hotels:sight_detail' pk=sight.pk %}" 
+               class="bg-primary text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+              Подробнее
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+    <div class="mt-10 flex justify-center">
+      <nav class="inline-flex rounded-md shadow">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50">← Назад</a>
+        {% endif %}
+        <span class="px-4 py-2 bg-gray-100 border border-gray-300">
+          {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50">Вперед →</a>
+        {% endif %}
+      </nav>
+    </div>
+  {% endif %}
+
+{% else %}
+  <div class="text-center py-20 bg-white rounded-xl shadow">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4">Ничего не найдено</h2>
+    <p class="text-gray-500">Попробуйте изменить фильтры</p>
+  </div>
+{% endif %}

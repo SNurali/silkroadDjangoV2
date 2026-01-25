@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Купить билет — {{ sight.name }}{% endblock %}
+
+{% block content %}
+  <div class="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-8">Купить билет на {{ sight.name }}</h1>
+
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <div>
+        {{ form.total_qty.label_tag }}
+        {{ form.total_qty }}
+      </div>
+
+      <div class="text-xl font-medium">
+        Итого: <span id="total-amount">0 сум</span>
+      </div>
+
+      <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-700 transition">
+        Купить
+      </button>
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Бронирование отеля — {{ hotel.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Бронирование: {{ hotel.name }}</h1>
+
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Errors -->
+                {% if form.errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                    <p class="font-bold text-red-700">Пожалуйста, исправьте ошибки:</p>
+                    <ul class="list-disc list-inside text-red-600">
+                        {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Dates -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.check_in.label }}</label>
+                        {{ form.check_in }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.check_out.label }}</label>
+                        {{ form.check_out }}
+                    </div>
+                </div>
+
+                <!-- Guests -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.adults.label }}</label>
+                        {{ form.adults }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.children.label }}</label>
+                        {{ form.children }}
+                    </div>
+                </div>
+
+                <!-- Personal Info -->
+                <div class="border-t pt-6">
+                    <h3 class="text-xl font-semibold mb-4">Контактные данные</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.guest_name.label
+                                }}</label>
+                            {{ form.guest_name }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.guest_email.label
+                                }}</label>
+                            {{ form.guest_email }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.guest_phone.label
+                                }}</label>
+                            {{ form.guest_phone }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Requests -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.special_requests.label
+                        }}</label>
+                    {{ form.special_requests }}
+                </div>
+
+                <!-- Hidden Logic Inputs -->
+                {{ form.selected_rooms_json }}
+                {{ form.total_price }}
+                <input type="hidden" name="total_price" value="0"> <!-- JS should update this -->
+
+                <!-- Pseudo Room Selection Logic (Simplified) -->
+                <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                    <p class="font-medium text-gray-700 mb-2">Выбор номера (автоматически первый доступный типа
+                        Standard)</p>
+                    <p class="text-sm text-gray-500">В полной версии здесь будет список комнат для выбора.</p>
+                    <!-- JS should populate selected_rooms_json -->
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            // Mock selection
+                            const roomsInput = document.querySelector('input[name="selected_rooms_json"]');
+                            const priceInput = document.querySelector('input[name="total_price"]');
+
+                            // Simple mock data
+                            if (roomsInput) roomsInput.value = JSON.stringify([{ type: 'standard', qty: 1 }]);
+                            if (priceInput) priceInput.value = "100.00";
+                        });
+                    </script>
+                </div>
+
+                <div class="flex justify-end pt-6">
+                    <a href="{% url 'hotels:hotel_detail' hotel.pk %}"
+                        class="mr-4 text-gray-600 hover:text-gray-900 py-3">Отмена</a>
+                    <button type="submit"
+                        class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition shadow-lg">
+                        Подтвердить бронирование
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

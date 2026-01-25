@@ -1,0 +1,158 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SilkRoad — Туризм Узбекистана{% endblock %}</title>
+
+    <!-- Локальный Tailwind -->
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col antialiased">
+
+    <!-- Сообщения -->
+    <div class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="px-6 py-4 rounded-lg shadow-lg text-white flex items-center gap-3 {% if message.tags == 'success' %}bg-green-600{% elif message.tags == 'error' %}bg-red-600{% elif message.tags == 'warning' %}bg-yellow-600{% else %}bg-blue-600{% endif %}" x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 5000)">
+                    <span>{{ message }}</span>
+                    <button @click="show = false" class="ml-auto text-white text-xl">×</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- ================= NAVBAR ================= -->
+    <header class="bg-white shadow sticky top-0 z-40" x-data="{ open: false }">
+        <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <!-- Logo -->
+            <a href="{% url 'hotels:sight_list' %}" class="text-2xl font-bold text-blue-600">
+                SilkRoad
+            </a>
+
+            <!-- Desktop menu -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="{% url 'hotels:sight_list' %}" class="text-gray-700 hover:text-blue-600 transition">
+                    Достопримечательности
+                </a>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition">
+                    Регионы
+                </a>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition">
+                    О нас
+                </a>
+
+                {% if user.is_authenticated %}
+                    <span class="text-sm text-gray-500">
+                        {{ user.name|default:user.email }}
+                    </span>
+                    <a href="{% url 'accounts:profile' %}" class="text-gray-700 hover:text-blue-600 transition">
+                        Кабинет
+                    </a>
+                    <a href="{% url 'accounts:logout' %}" class="text-red-600 hover:text-red-800 transition">
+                        Выйти
+                    </a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="text-gray-700 hover:text-blue-600 transition">
+                        Войти
+                    </a>
+                    <a href="{% url 'accounts:register' %}"
+                       class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">
+                        Регистрация
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Hamburger -->
+            <button @click="open = !open"
+                    class="md:hidden focus:outline-none"
+                    aria-label="Открыть меню">
+                <svg x-show="!open" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                <svg x-show="open" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </nav>
+
+        <!-- Mobile menu -->
+        <div x-show="open"
+             @click.away="open = false"
+             class="md:hidden bg-white border-t shadow-lg">
+            <div class="flex flex-col px-6 py-6 space-y-4">
+                <a href="{% url 'hotels:sight_list' %}"
+                   @click="open = false"
+                   class="text-lg text-gray-700 hover:text-blue-600">
+                    Достопримечательности
+                </a>
+                <a href="#"
+                   @click="open = false"
+                   class="text-lg text-gray-700 hover:text-blue-600">
+                    Регионы
+                </a>
+                <a href="#"
+                   @click="open = false"
+                   class="text-lg text-gray-700 hover:text-blue-600">
+                    О нас
+                </a>
+
+                {% if user.is_authenticated %}
+                    <div class="pt-4 border-t">
+                        <p class="text-sm text-gray-500 mb-3">
+                            {{ user.name|default:user.email }}
+                        </p>
+                        <a href="{% url 'accounts:profile' %}"
+                           @click="open = false"
+                           class="block py-2 text-lg text-gray-700 hover:text-blue-600">
+                            Кабинет
+                        </a>
+                        <a href="{% url 'accounts:logout' %}"
+                           @click="open = false"
+                           class="block py-2 text-lg text-red-600 hover:text-red-800">
+                            Выйти
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}"
+                       @click="open = false"
+                       class="text-lg text-gray-700 hover:text-blue-600">
+                        Войти
+                    </a>
+                    <a href="{% url 'accounts:register' %}"
+                       @click="open = false"
+                       class="mt-2 bg-blue-600 text-white px-6 py-3 rounded-lg text-center hover:bg-blue-700">
+                        Регистрация
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <!-- ================= END NAVBAR ================= -->
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p>© {% now "Y" %} SilkRoad.uz — Все права защищены</p>
+            <p class="mt-2 text-gray-400">Разработка для туризма Узбекистана</p>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

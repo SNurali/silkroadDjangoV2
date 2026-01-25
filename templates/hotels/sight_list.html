@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Достопримечательности — SilkRoad{% endblock %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Достопримечательности Узбекистана</h1>
+    <p class="text-lg text-gray-600">Откройте для себя уникальные места нашей страны</p>
+  </div>
+
+  <!-- Фильтры (остаются на месте, не дублируются) -->
+  <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+    <form hx-get="{% url 'hotels:sight_partial_list' %}" 
+          hx-target="#results" 
+          hx-swap="innerHTML"
+          hx-trigger="change from:#category, change from:#region"
+          class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <div>
+        <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+        <select id="category" name="category" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+          <option value="">Все категории</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+              {{ cat.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="region" class="block text-sm font-medium text-gray-700 mb-1">Регион</label>
+        <select id="region" name="region" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+          <option value="">Все регионы</option>
+          {% for reg in regions %}
+            <option value="{{ reg.id }}" {% if selected_region == reg.id|stringformat:"s" %}selected{% endif %}>
+              {{ reg.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex items-end">
+        <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+          Применить фильтры
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Только карточки (заменяются htmx) -->
+  <div id="results">
+    {% include 'hotels/partials/sight_list_partial.html' %}
+  </div>
+{% endblock %}
