@@ -175,3 +175,57 @@ class TravelerViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class GoogleLoginView(APIView):
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = []
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from google.oauth2 import id_token
+            from google.auth.transport import requests as google_requests
+            from django.conf import settings
+            import os
+
+            # Supports both Web and Mobile client IDs
+            CLIENT_ID = settings.GOOGLE_CLIENT_ID or os.getenv('GOOGLE_CLIENT_ID')
+            WEB_CLIENT_ID = settings.WEB_GOOGLE_CLIENT_ID or os.getenv('WEB_GOOGLE_CLIENT_ID')
+
+            # Verify token
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                audience=[CLIENT_ID, WEB_CLIENT_ID] 
+            )
+
+            email = idinfo['email']
+            name = idinfo.get('name', '')
+            
+            # Find or Create User
+            user, created = User.objects.get_or_create(email=email, defaults={
+                'name': name,
+                'role': 'traveler', 
+                'is_active': True
+            })
+            
+            if created:
+                user.set_unusable_password()
+                user.save()
+            
+            # Generate JWT
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            })
+            
+        except ValueError as e:
+            return Response({'error': f'Invalid token: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

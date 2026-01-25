@@ -20,6 +20,7 @@ router.register(r'travelers', views.TravelerViewSet, basename='travelers')
 
 urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
+    path('auth/google/', views.GoogleLoginView.as_view(), name='google_login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
     path('profile/', views.UserProfileView.as_view(), name='profile'),

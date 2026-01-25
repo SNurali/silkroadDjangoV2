@@ -166,6 +166,11 @@ export const login = async (credentials) => {
     return response.data; // Should contain {access, refresh}
 };
 
+export const googleLogin = async (token) => {
+    const response = await api.post('/accounts/auth/google/', { token });
+    return response.data;
+};
+
 // User Profile / Gallery
 export const getProfileImages = async () => {
     const response = await api.get('/users/me/images/');
