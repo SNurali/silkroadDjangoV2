@@ -1,171 +1,404 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import Gallery from '../components/Gallery';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
-import { Button } from '../components/ui/Button';
-import { motion } from 'framer-motion';
-import { Check, User as UserIcon, Calendar, CreditCard, Flag } from 'lucide-react';
-import { clsx } from 'clsx'; // Fixed: Import clsx
+import { getProfile, updateProfile, changePassword, getCountries } from '../services/api';
+import ProfileLayout from './profile/ProfileLayout';
+import ProfileSection from './profile/ProfileSection';
+import { clsx } from 'clsx';
+import { CheckCircle, Camera, Save, Lock, Mail, Phone, Globe, Calendar, User, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Profile() {
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
+const Profile = () => {
+  const { user, setUser } = useAuth();
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState([]);
 
-    // Form State (Ideally use react-hook-form)
-    const [formData, setFormData] = useState({
-        name: '',
-        phone: '',
-        nationality: '',
-        dtb: '',
-        gender: 'M',
-        passport: '',
-        pspissuedt: ''
-    });
+  // Profile Data
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    passport: '',
+    sex: 'M',
+    id_citizen: '',
+    dtb: '',
+    pspissuedt: '',
+    completion_percent: 0,
+    avatar_url: null,
+    photo: null
+  });
 
-    useEffect(() => {
-        if (user) {
-            setFormData({
-                name: user.name || user.first_name || '',
-                phone: user.phone || '',
-                nationality: user.id_citizen || '',
-                dtb: user.dtb || '',
-                gender: user.sex || 'M',
-                passport: user.passport || '',
-                pspissuedt: user.pspissuedt || ''
-            });
-        }
-    }, [user]);
+  // Password Data
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    password_confirmation: ''
+  });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await api.put('/accounts/profile/update/', formData); // Needs backend support
-            alert("Profile updated successfully!"); // Toast replacement
-        } catch (err) {
-            console.error(err);
-        }
+  const [status, setStatus] = useState({ type: '', message: '' });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profileData, countryList] = await Promise.all([
+          getProfile(),
+          getCountries()
+        ]);
+
+        setFormData({
+          ...profileData,
+          dtb: profileData.dtb || '',
+          pspissuedt: profileData.pspissuedt || '',
+          sex: profileData.sex || 'M',
+          id_citizen: profileData.id_citizen || ''
+        });
+
+        setCountries(Array.isArray(countryList) ? countryList : []);
+      } catch (error) {
+        console.error("Failed to load profile", error);
+      } finally {
         setLoading(false);
+      }
     };
+    loadData();
+  }, []);
 
-    return (
-        <div className="min-h-screen bg-slate-50 pb-20">
-            {/* Header / Banner */}
-            <div className="h-48 bg-gradient-to-r from-indigo-600 to-purple-700 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== null && key !== 'avatar_url' && key !== 'photo' && key !== 'completion_percent') {
+        data.append(key, formData[key]);
+      }
+    });
+    data.append('photo', file);
+
+    try {
+      const updated = await updateProfile(data);
+      setFormData(prev => ({ ...prev, ...updated }));
+      setStatus({ type: 'success', message: t('profile.success_update_photo', 'Photo updated!') });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } catch (e) {
+      console.error(e);
+      setStatus({ type: 'error', message: t('profile.fail_update_photo', 'Failed to update photo.') });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const updated = await updateProfile(formData);
+      setFormData(prev => ({ ...prev, ...updated }));
+      setStatus({ type: 'success', message: t('profile.success_update') });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } catch (error) {
+      console.error(error);
+      setStatus({ type: 'error', message: t('profile.fail_update') });
+    }
+  };
+
+  const handleSubmitPassword = async (e) => {
+    e.preventDefault();
+    if (passwordData.new_password !== passwordData.password_confirmation) {
+      setStatus({ type: 'error', message: t('profile.fail_pass_match', 'Passwords do not match.') });
+      return;
+    }
+    try {
+      await changePassword({
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password
+      });
+      setStatus({ type: 'success', message: t('profile.success_update') });
+      setPasswordData({ current_password: '', new_password: '', password_confirmation: '' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } catch (error) {
+      console.error(error);
+      setStatus({ type: 'error', message: error.response?.data?.current_password?.[0] || t('profile.fail_update') });
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-8">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('common.loading', 'Loading profile...')}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <ProfileLayout activePage="profile">
+      <div className="max-w-4xl mx-auto py-4">
+
+        {/* Status Notifications */}
+        <AnimatePresence>
+          {status.message && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`mb-8 p-4 rounded-2xl flex items-center gap-4 border shadow-sm ${status.type === 'success'
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400'
+                : 'bg-rose-50 border-rose-100 text-rose-800 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400'
+                }`}
+            >
+              <div className={`p-2 rounded-full ${status.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} text-white`}>
+                {status.type === 'success' ? <CheckCircle size={18} /> : <Save size={18} />}
+              </div>
+              <span className="font-bold text-sm tracking-tight">{status.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Profile Information Section */}
+        <ProfileSection
+          title={t('profile.section_info_title', 'Profile Information')}
+          description={t('profile.section_info_desc', "Update your account's profile information and email address.")}
+          footer={
+            <button
+              onClick={handleSubmit}
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-8 rounded-xl transition-all shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 text-sm uppercase tracking-wider"
+            >
+              <Save size={18} />
+              {t('profile.save_changes')}
+            </button>
+          }
+        >
+          <div className="space-y-10">
+            {/* Profile Photo */}
+            <div className="flex items-center gap-8">
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-700 ring-4 ring-white dark:ring-slate-800 shadow-xl transition-transform group-hover:scale-105 duration-500">
+                  {formData.avatar_url ? (
+                    <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
+                      <User size={40} className="mb-2 opacity-50" />
+                      <span className="text-[10px] uppercase font-black opacity-30 tracking-tighter">No Image</span>
+                    </div>
+                  )}
+                </div>
+                <label className="absolute -bottom-3 -right-3 p-3 bg-indigo-600 text-white rounded-2xl cursor-pointer hover:bg-indigo-700 transition-all shadow-lg hover:rotate-12 active:scale-90 ring-4 ring-white dark:ring-slate-800">
+                  <Camera size={20} />
+                  <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                </label>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-xl font-black text-slate-900 dark:text-white mb-1 uppercase tracking-tighter italic">
+                  {t('profile.photo_management', 'Profile Photo')}
+                </h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 max-w-xs font-medium">
+                  {t('profile.photo_desc', 'JPG or PNG, max size of 2MB. Your photo is visible to vendors.')}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-1000"
+                      style={{ width: `${formData.completion_percent}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 italic">{formData.completion_percent}%</span>
+                </div>
+              </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 relative -mt-20">
-
-                {/* Profile Card */}
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-start md:items-end mb-8 border border-slate-100/50 backdrop-blur-sm">
-                    <div className="relative group">
-                        <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-200">
-                            <img src={user?.avatar || "https://ui-avatars.com/api/?background=random&name=" + (user?.name || "User")}
-                                alt="Profile" className="w-full h-full object-cover" />
-                        </div>
-                        <button className="absolute bottom-1 right-1 bg-white p-1.5 rounded-full shadow-md text-slate-600 hover:text-indigo-600 transition-colors">
-                            <UserIcon size={16} />
-                        </button>
-                    </div>
-
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-bold text-slate-800">{user?.name || user?.email}</h1>
-                        <p className="text-slate-500 font-medium flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                            Full Stack Developer • {user?.email}
-                        </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                        <Button variant="primary">Edit Profile</Button>
-                    </div>
+            {/* Form Inputs Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.full_name')}</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                    required
+                  />
                 </div>
+              </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
-                    {/* Left Column: Personal Info Form */}
-                    <div className="md:col-span-2 space-y-8">
-
-                        {/* Personal Info Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 border border-slate-100"
-                        >
-                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <UserIcon size={20} className="text-indigo-500" /> Personal Information
-                            </h3>
-
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input label="Full Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                <Input label="Phone Number" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-
-                                <Select label="Nationality" value={formData.nationality} placeholder="Select Country"
-                                    options={[{ value: 'UZ', label: 'Uzbekistan' }, { value: 'US', label: 'USA' }]}
-                                    onChange={e => setFormData({ ...formData, nationality: e.target.value })}
-                                />
-
-                                <Input label="Date of Birth" type="date" value={formData.dtb} onChange={e => setFormData({ ...formData, dtb: e.target.value })} />
-
-                                {/* Gender Radio */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
-                                    <div className="flex gap-4">
-                                        {['M', 'F'].map((g) => (
-                                            <label key={g} className={clsx(
-                                                "flex-1 border rounded-lg p-3 flex items-center justify-center gap-2 cursor-pointer transition-all",
-                                                formData.gender === g ? "bg-indigo-50 border-indigo-500 text-indigo-700 font-semibold" : "border-slate-200 hover:bg-slate-50"
-                                            )}>
-                                                <input type="radio" name="gender" value={g} checked={formData.gender === g} onChange={() => setFormData({ ...formData, gender: g })} className="hidden" />
-                                                {g === 'M' ? 'Male' : 'Female'}
-                                                {formData.gender === g && <Check size={16} />}
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <Input label="Passport Serial" value={formData.passport} onChange={e => setFormData({ ...formData, passport: e.target.value })} />
-                                <Input label="Date of Issue" type="date" value={formData.pspissuedt} onChange={e => setFormData({ ...formData, pspissuedt: e.target.value })} />
-
-                                <div className="md:col-span-2 flex justify-end mt-4">
-                                    <Button type="submit" isLoading={loading}>Save Changes</Button>
-                                </div>
-                            </form>
-                        </motion.div>
-
-                        {/* Gallery Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 border border-slate-100"
-                        >
-                            <Gallery />
-                        </motion.div>
-                    </div>
-
-                    {/* Right Column: Sidebar / Progress */}
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-200/50 border border-slate-100">
-                            <h4 className="font-bold text-slate-800 mb-4">Profile Completion</h4>
-                            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden mb-2">
-                                <div className="bg-green-500 h-full w-[85%] rounded-full"></div>
-                            </div>
-                            <p className="text-sm text-slate-500">85% Completed. Add your passport details to reach 100%.</p>
-                        </div>
-
-                        <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-xl shadow-indigo-900/30 overflow-hidden relative">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <h4 className="font-bold text-lg mb-2">Upgrade to Pro</h4>
-                            <p className="text-indigo-200 text-sm mb-4">Get verified badge and unlimited uploads.</p>
-                            <button className="w-full py-2 bg-white text-indigo-900 rounded-lg font-semibold text-sm hover:bg-indigo-50 transition">View Plans</button>
-                        </div>
-                    </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('login.email')}</label>
+                <div className="relative group select-none cursor-not-allowed">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <input
+                    type="email"
+                    value={formData.email || ''}
+                    disabled
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold outline-none"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-slate-200 dark:bg-slate-700 rounded-md">
+                    <Lock size={12} className="text-slate-400" />
+                  </div>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.phone')}</label>
+                <div className="relative group">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-4 ring-emerald-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.nationality')}</label>
+                <div className="relative group">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <select
+                    name="id_citizen"
+                    value={formData.id_citizen || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-4 ring-amber-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner appearance-none"
+                    required
+                  >
+                    <option value="">{t('profile.select_country')}</option>
+                    {countries.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.dob')}</label>
+                <div className="relative group">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    type="date"
+                    name="dtb"
+                    value={formData.dtb || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.gender')}</label>
+                <div className="flex gap-4">
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.sex === 'M' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-400 dark:text-indigo-300 shadow-lg shadow-indigo-200/20' : 'bg-transparent border-slate-100 dark:border-slate-800 text-slate-500 hover:bg-slate-50'}`}>
+                    <input type="radio" name="sex" value="M" checked={formData.sex === 'M'} onChange={handleChange} className="hidden" />
+                    <ShieldCheck size={16} className={formData.sex === 'M' ? 'opacity-100' : 'opacity-0'} />
+                    <span className="font-bold uppercase text-xs tracking-widest">{t('profile.male')}</span>
+                  </label>
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.sex === 'F' ? 'bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-900/40 dark:border-rose-400 dark:text-rose-300 shadow-lg shadow-rose-200/20' : 'bg-transparent border-slate-100 dark:border-slate-800 text-slate-500 hover:bg-slate-50'}`}>
+                    <input type="radio" name="sex" value="F" checked={formData.sex === 'F'} onChange={handleChange} className="hidden" />
+                    <ShieldCheck size={16} className={formData.sex === 'F' ? 'opacity-100' : 'opacity-0'} />
+                    <span className="font-bold uppercase text-xs tracking-widest">{t('profile.female')}</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.passport')}</label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <input
+                    type="text"
+                    name="passport"
+                    value={formData.passport || ''}
+                    onChange={handleChange}
+                    placeholder="AA 1234567"
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner placeholder:italic placeholder:font-normal"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.issue_date')}</label>
+                <div className="relative group">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="date"
+                    name="pspissuedt"
+                    value={formData.pspissuedt || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                    required
+                  />
+                </div>
+              </div>
             </div>
-        </div>
-    );
-}
+          </div>
+        </ProfileSection>
+
+        {/* Password Section */}
+        <ProfileSection
+          title={t('profile.update_password')}
+          description={t('profile.update_password_desc', 'Ensure your account is using a long, random password to stay secure.')}
+          footer={
+            <button
+              onClick={handleSubmitPassword}
+              className="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold py-2.5 px-8 rounded-xl transition-all shadow-lg shadow-slate-200 dark:shadow-none active:scale-95 text-sm uppercase tracking-wider"
+            >
+              <Lock size={18} />
+              {t('profile.change_password')}
+            </button>
+          }
+        >
+          <div className="space-y-8 max-w-lg">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.current_password')}</label>
+              <input
+                type="password"
+                name="current_password"
+                value={passwordData.current_password}
+                onChange={handlePasswordChange}
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.new_password')}</label>
+              <input
+                type="password"
+                name="new_password"
+                value={passwordData.new_password}
+                onChange={handlePasswordChange}
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest pl-1">{t('profile.confirm_password')}</label>
+              <input
+                type="password"
+                name="password_confirmation"
+                value={passwordData.password_confirmation}
+                onChange={handlePasswordChange}
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-4 ring-indigo-500/10 outline-none transition-all font-bold text-slate-800 dark:text-slate-100 shadow-inner"
+                required
+              />
+            </div>
+          </div>
+        </ProfileSection>
+
+      </div>
+    </ProfileLayout>
+  );
+};
+
+export default Profile;

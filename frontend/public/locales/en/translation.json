@@ -19,7 +19,12 @@
         "signup": "Sign Up",
         "profile": "Your Profile",
         "vendor": "Vendor Dashboard",
-        "signout": "Sign out"
+        "signout": "Sign out",
+        "notifications": "Notifications",
+        "clear_all": "Clear all",
+        "no_notifications": "No new notifications",
+        "theme": "Theme",
+        "language": "Language"
     },
     "home": {
         "hero_title": "Find the top <1>Hotels nearby</1>",
@@ -414,5 +419,40 @@
         "freq_twice_week": "Twice a Week",
         "freq_weekly": "Weekly",
         "freq_never": "Never"
+    },
+    "register": {
+        "title": "Register",
+        "error_default": "Registration Error",
+        "email": "Email *",
+        "name": "First Name *",
+        "lname": "Last Name",
+        "phone": "Phone",
+        "password": "Password *",
+        "submit": "Sign Up",
+        "have_account": "Already have an account?",
+        "signin": "Sign In"
+    },
+    "vendor_sidebar": {
+        "title": "Vendor Portal",
+        "subtitle": "Manage your business",
+        "dashboard": "Dashboard",
+        "my_hotels": "My Hotels",
+        "my_tours": "My Tours",
+        "bookings": "Bookings",
+        "settings": "Settings",
+        "signout": "Sign Out"
+    },
+    "vendor_dashboard": {
+        "title": "Dashboard",
+        "welcome": "Welcome back, {{name}}",
+        "last_30_days": "Last 30 Days",
+        "reports": "Reports",
+        "total_revenue": "Total Revenue",
+        "total_bookings": "Total Bookings",
+        "active_hotels": "Active Hotels",
+        "active_tours": "Active Tours",
+        "revenue_analytics": "Revenue Analytics",
+        "recent_bookings": "Recent Bookings",
+        "no_bookings": "No recent bookings"
     }
 }

@@ -1,181 +1,181 @@
-# SilkRoad Project
+# Проект SilkRoad
 
-![SilkRoad Logo](./silkroad-frontend/public/silkroad-logo-final.png)
+![Логотип SilkRoad](./frontend/public/silkroad-logo-final.png)
 
-SilkRoad is a comprehensive Tourism & Hotel Booking platform connecting travelers with authentic experiences in Central Asia. It features a robust multi-role system (Travelers, Vendors, Admins) and integrates hotel bookings, tour packages, and transport services.
+SilkRoad — это комплексная платформа для туризма и бронирования отелей, соединяющая путешественников с аутентичными впечатлениями в Центральной Азии. Платформа оснащена надежной мультиролевой системой (Путешественники, Вендоры, Администраторы) и интегрирует бронирование отелей, туров и транспортных услуг.
 
-## 🚀 Features
+## 🚀 Возможности
 
-### For Travelers
-*   **Smart Search**: Find hotels and tours by location, dates, and guest count.
-*   **Booking System**: Real-time checking of room availability and price calculation.
-*   **Personal Profile**: Manage bookings, tickets, and personal information.
-*   **Secure Payments**: Integrated payment processing logic (Yagona Billing ready).
-*   **Responsive Design**: Modern UI/UX with Dark Mode support.
+### Для Путешественников
+*   **Умный Поиск**: Поиск отелей и туров по местоположению, датам и количеству гостей.
+*   **Система Бронирования**: Проверка доступности номеров в реальном времени и расчет стоимости.
+*   **Личный Профиль**: Управление бронированиями, билетами и личной информацией.
+*   **Безопасные Платежи**: Интегрированная логика обработки платежей (подготовлено для Yagona Billing).
+*   **Адаптивный Дизайн**: Современный UI/UX с поддержкой темной темы.
 
-### For Vendors (Hotel/Tour Operators)
-*   **Vendor Dashboard**: Comprehensive analytics on revenue, bookings, and customer stats.
-*   **Management Portal**: Create and manage Hotels, Rooms, Tours (Sights), and Ticket types.
-*   **Booking Control**: Approve or Reject booking requests with specific rejection reasons.
-*   **Financial Reports**: Track daily income and booking trends via interactive charts.
+### Для Вендоров (Отели/Туроператоры)
+*   **Панель Вендора**: Комплексная аналитика по доходам, бронированиям и статистике клиентов.
+*   **Портал Управления**: Создание и управление отелями, номерами, турами (Достопримечательностями) и типами билетов.
+*   **Контроль Бронирований**: Подтверждение или отклонение запросов на бронирование с указанием причины отказа.
+*   **Финансовые Отчеты**: Отслеживание ежедневного дохода и трендов бронирования с помощью интерактивных графиков.
 
-### Technical Highlights
-*   **Modern Stack**: Django 5 (Backend) + React/Vite (Frontend).
-*   **JWT Authentication**: Secure stateless authentication implementation.
-*   **Drag-and-Drop Gallery**: Interactive image management for vendors.
-*   **Multi-language Support**: i18n ready structure (EN, RU, UZ).
+### Технические Особенности
+*   **Современный Стек**: Django 5 (Бэкенд) + React/Vite (Фронтенд).
+*   **JWT Аутентификация**: Реализация безопасной аутентификации без сохранения состояния (stateless).
+*   **Drag-and-Drop Галерея**: Интерактивное управление изображениями для вендоров.
+*   **Мультиязычная Поддержка**: Структура, готовая к i18n (EN, RU, UZ).
 
 ---
 
-## 🛠 Technology Stack
+## 🛠 Стек Технологий
 
-### Backend
+### Бэкенд
 *   **Python 3.12**
-*   **Django 5.0** & **Django REST Framework**
-*   **SimpleJWT** (Authentication)
-*   **SQLite** (Development) / PostgreSQL (Production ready)
+*   **Django 5.0** и **Django REST Framework**
+*   **SimpleJWT** (Аутентификация)
+*   **SQLite** (Разработка) / PostgreSQL (Готов к продакшену)
 
-### Frontend
+### Фронтенд
 *   **React 18**
-*   **Vite** (Build tool)
-*   **TailwindCSS** (Styling)
-*   **Axios** (API Client)
-*   **Recharts** (Analytics)
-*   **Lucide React** (Icons)
+*   **Vite** (Инструмент сборки)
+*   **TailwindCSS** (Стилизация)
+*   **Axios** (API Клиент)
+*   **Recharts** (Аналитика)
+*   **Lucide React** (Иконки)
 
 ---
 
-## 🐳 Database Setup (Docker)
+## 🐳 Настройка Базы Данных (Docker)
 
-This project uses **PostgreSQL** running in a Docker container.
+Этот проект использует **PostgreSQL**, запущенный в Docker-контейнере.
 
-### Start Database
+### Запуск БД
 ```bash
 docker compose up -d
 ```
-This will start the Postgres server on port `5432`.
+Это запустит сервер Postgres на порту `5432`.
 
-### Stop Database
+### Остановка БД
 ```bash
 docker compose down
 ```
 
-### Credentials
-- **DB**: `silkroad`
-- **User**: `silkroad`
-- **Pass**: `silkroad`
-- **Port**: `5432`
+### Учетные данные
+- **БД**: `silkroad`
+- **Пользователь**: `silkroad`
+- **Пароль**: `silkroad`
+- **Порт**: `5432`
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Установка и Настройка
 
-### Prerequisites
+### Предварительные требования
 *   Python 3.12+
-*   Node.js 18+ and npm
+*   Node.js 18+ и npm
 
-### 1. Backend Setup
+### 1. Настройка Бэкенда
 
-1.  **Clone the repository**:
+1.  **Клонируйте репозиторий**:
     ```bash
     git clone https://github.com/SNurali/silkroadDjangoV2.git
     cd silkroadDjangoV2
     ```
 
-2.  **Create and activate virtual environment**:
+2.  **Создайте и активируйте виртуальное окружение**:
     ```bash
     python3 -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    source venv/bin/activate  # Для Windows: venv\Scripts\activate
     ```
 
-3.  **Install dependencies**:
+3.  **Установите зависимости**:
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Apply Migrations**:
+4.  **Примените миграции**:
     ```bash
     python manage.py migrate
     ```
 
-5.  **Create Superuser (Admin)**:
+5.  **Создайте Суперпользователя (Админа)**:
     ```bash
     python manage.py createsuperuser
     ```
 
-6.  **Run Server**:
+6.  **Запустите сервер**:
     ```bash
     python manage.py runserver
     ```
-    Backend will be available at `http://localhost:8000`.
+    Бэкенд будет доступен по адресу `http://localhost:8000`.
 
-### 2. Frontend Setup
+### 2. Настройка Фронтенда
 
-1.  **Navigate to frontend directory**:
+1.  **Перейдите в директорию фронтенда**:
     ```bash
     cd silkroad-frontend
     ```
 
-2.  **Install dependencies**:
+2.  **Установите зависимости**:
     ```bash
     npm install
     ```
 
-3.  **Run Development Server**:
+3.  **Запустите сервер разработки**:
     ```bash
     npm run dev
     ```
-    Frontend will be available at `http://localhost:5173`.
+    Фронтенд будет доступен по адресу `http://localhost:3000`.
 
 ---
 
-## 🔑 Environment Configuration
+## 🔑 Конфигурация Окружения
 
-### Backend (`.env`)
-Create a `.env` file in the root directory (next to `manage.py`):
+### Бэкенд (`.env`)
+Создайте файл `.env` в корневой директории (рядом с `manage.py`):
 ```env
 DEBUG=True
 SECRET_KEY=your-secret-key-here
 ALLOWED_HOSTS=localhost,127.0.0.1
-# Database config (Optional for dev, uses SQLite by default)
+# Конфигурация БД (Опционально для разработки, по умолчанию используется SQLite)
 ```
 
-### Frontend (`.env`)
-Create a `.env` file in `silkroad-frontend/`:
+### Фронтенд (`.env`)
+Создайте файл `.env` в директории `silkroad-frontend/`:
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
 ---
 
-## 📚 API Documentation
+## 📚 Документация API
 
-The backend provides several key API endpoints:
+Бэкенд предоставляет несколько ключевых API эндпоинтов:
 
-*   **Auth**:
-    *   `POST /api/accounts/login/` - Obtain Access/Refresh Tokens
-    *   `POST /api/accounts/register/` - User Registration
-*   **Hotels**:
-    *   `GET /api/all-hotels/` - List all hotels (public)
-    *   `GET /api/hotels/<id>/` - Hotel details
-    *   `POST /api/hotels/bookings/` - Create a booking
-*   **Vendor**:
-    *   `GET /api/vendors/dashboard/` - Stats and Charts
-    *   `POST /api/vendors/bookings/<id>/approve/` - Confirm booking
-    *   `POST /api/vendors/bookings/<id>/reject/` - Reject booking (requires reason)
-
----
-
-## 🤝 Contribution
-
-1.  Fork the repository.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+*   **Аутентификация**:
+    *   `POST /api/accounts/login/` - Получение токенов доступа/обновления
+    *   `POST /api/accounts/register/` - Регистрация пользователя
+*   **Отели**:
+    *   `GET /api/all-hotels/` - Список всех отелей (публичный)
+    *   `GET /api/hotels/<id>/` - Детали отеля
+    *   `POST /api/hotels/bookings/` - Создать бронирование
+*   **Вендор**:
+    *   `GET /api/vendors/dashboard/` - Статистика и графики
+    *   `POST /api/vendors/bookings/<id>/approve/` - Подтвердить бронирование
+    *   `POST /api/vendors/bookings/<id>/reject/` - Отклонить бронирование (требуется причина)
 
 ---
 
-## 📄 License
+## 🤝 Вклад в проект (Contribution)
 
-Distributed under the MIT License. See `LICENSE` for more information.
+1.  Форкните репозиторий.
+2.  Создайте ветку для новой функции (`git checkout -b feature/AmazingFeature`).
+3.  Закоммитьте изменения (`git commit -m 'Add some AmazingFeature'`).
+4.  Запушьте ветку (`git push origin feature/AmazingFeature`).
+5.  Откройте Pull Request.
+
+---
+
+## 📄 Лицензия
+
+Распространяется под лицензией MIT. Смотрите файл `LICENSE` для получения дополнительной информации.

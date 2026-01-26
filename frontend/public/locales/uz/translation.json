@@ -19,7 +19,12 @@
         "signup": "Ro'yxatdan o'tish",
         "profile": "Sizning profilingiz",
         "vendor": "Vendor Paneli",
-        "signout": "Chiqish"
+        "signout": "Chiqish",
+        "notifications": "Bildirishnomalar",
+        "clear_all": "Hammasini tozalash",
+        "no_notifications": "Yangi bildirishnomalar yo'q",
+        "theme": "Mavzu",
+        "language": "Til"
     },
     "home": {
         "hero_title": "Yaqin atrofda eng yaxshi <1>Mehmonxonalarni</1> toping",
@@ -404,5 +409,41 @@
         "freq_twice_week": "Haftada 2 marta",
         "freq_weekly": "Haftalik",
         "freq_never": "Hech qachon"
+    },
+    "register": {
+        "title": "Ro'yxatdan o'tish",
+        "error_default": "Ro'yxatdan o'tish xatosi",
+        "email": "Ism",
+        "email_label": "Email *",
+        "name": "Ism *",
+        "lname": "Familiya",
+        "phone": "Telefon",
+        "password": "Parol *",
+        "submit": "Ro'yxatdan o'tish",
+        "have_account": "Hisobingiz bormi?",
+        "signin": "Kirish"
+    },
+    "vendor_sidebar": {
+        "title": "Vendor Portali",
+        "subtitle": "Biznesni boshqarish",
+        "dashboard": "Boshqaruv paneli",
+        "my_hotels": "Mehmonxonalarim",
+        "my_tours": "Turlarim",
+        "bookings": "Bandlovlar",
+        "settings": "Sozlamalar",
+        "signout": "Chiqish"
+    },
+    "vendor_dashboard": {
+        "title": "Boshqaruv paneli",
+        "welcome": "Xush kelibsiz, {{name}}",
+        "last_30_days": "Oxirgi 30 kun",
+        "reports": "Hisobotlar",
+        "total_revenue": "Umumiy daromad",
+        "total_bookings": "Jami bandlovlar",
+        "active_hotels": "Faol mehmonxonalar",
+        "active_tours": "Faol turlar",
+        "revenue_analytics": "Daromad tahlili",
+        "recent_bookings": "So'nggi bandlovlar",
+        "no_bookings": "So'nggi bandlovlar yo'q"
     }
 }

@@ -19,7 +19,12 @@
         "signup": "Регистрация",
         "profile": "Ваш профиль",
         "vendor": "Панель Вендора",
-        "signout": "Выйти"
+        "signout": "Выйти",
+        "notifications": "Уведомления",
+        "clear_all": "Очистить все",
+        "no_notifications": "Нет новых уведомлений",
+        "theme": "Тема",
+        "language": "Язык"
     },
     "home": {
         "hero_title": "Найдите лучшие <1>Отели рядом</1>",
@@ -414,5 +419,40 @@
         "freq_twice_week": "Дважды в неделю",
         "freq_weekly": "Еженедельно",
         "freq_never": "Никогда"
+    },
+    "register": {
+        "title": "Регистрация",
+        "error_default": "Ошибка регистрации",
+        "email": "Email *",
+        "name": "Имя *",
+        "lname": "Фамилия",
+        "phone": "Телефон",
+        "password": "Пароль *",
+        "submit": "Зарегистрироваться",
+        "have_account": "Уже есть аккаунт?",
+        "signin": "Войти"
+    },
+    "vendor_sidebar": {
+        "title": "Портал Вендора",
+        "subtitle": "Управление бизнесом",
+        "dashboard": "Панель управления",
+        "my_hotels": "Мои Отели",
+        "my_tours": "Мои Туры",
+        "bookings": "Бронирования",
+        "settings": "Настройки",
+        "signout": "Выйти"
+    },
+    "vendor_dashboard": {
+        "title": "Панель управления",
+        "welcome": "С возвращением, {{name}}",
+        "last_30_days": "Последние 30 дней",
+        "reports": "Отчеты",
+        "total_revenue": "Общая выручка",
+        "total_bookings": "Всего бронирований",
+        "active_hotels": "Активные отели",
+        "active_tours": "Активные туры",
+        "revenue_analytics": "Аналитика выручки",
+        "recent_bookings": "Недавние бронирования",
+        "no_bookings": "Нет недавних бронирований"
     }
 }

@@ -195,15 +195,19 @@ class GoogleLoginView(APIView):
             CLIENT_ID = settings.GOOGLE_CLIENT_ID or os.getenv('GOOGLE_CLIENT_ID')
             WEB_CLIENT_ID = settings.WEB_GOOGLE_CLIENT_ID or os.getenv('WEB_GOOGLE_CLIENT_ID')
 
-            # Verify token
-            idinfo = id_token.verify_oauth2_token(
-                token, 
-                google_requests.Request(), 
-                audience=[CLIENT_ID, WEB_CLIENT_ID] 
-            )
-
-            email = idinfo['email']
-            name = idinfo.get('name', '')
+            # --- DEV BYPASS ---
+            if settings.DEBUG and token == "DEV_TOKEN_BYPASS":
+                email = "admin@mail.ru" # Default dev user
+                name = "Admin Dev"
+            else:
+                # Real Verification
+                idinfo = id_token.verify_oauth2_token(
+                    token, 
+                    google_requests.Request(), 
+                    audience=[CLIENT_ID, WEB_CLIENT_ID] 
+                )
+                email = idinfo['email']
+                name = idinfo.get('name', '')
             
             # Find or Create User
             user, created = User.objects.get_or_create(email=email, defaults={

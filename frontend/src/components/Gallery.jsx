@@ -3,23 +3,10 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Move, Trash2, ZoomIn, Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { Button } from './ui/Button';
+import axios from '../services/api'; // Use our api instance
 import { clsx } from 'clsx';
 
-// API Client (Simplified for this component)
-const api = axios.create({
-    baseURL: '/api'
-});
-
-// Add interceptor for JWT if you have it stored in localStorage
-api.interceptors.request.use(config => {
-    const token = localStorage.getItem('accessToken');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-});
-
-export default function Gallery({ endpoint = '/accounts/me/images/' }) {
+export default function Gallery({ endpoint = '/users/me/images/' }) {
     const [images, setImages] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -27,8 +14,7 @@ export default function Gallery({ endpoint = '/accounts/me/images/' }) {
     // Fetch Images
     const fetchImages = useCallback(async () => {
         try {
-            const res = await api.get(endpoint);
-            // Ensure we handle pagination result or direct list
+            const res = await axios.get(endpoint);
             const data = res.data.results ? res.data.results : res.data;
             setImages(data.sort((a, b) => a.order - b.order));
         } catch (error) {
@@ -44,11 +30,10 @@ export default function Gallery({ endpoint = '/accounts/me/images/' }) {
     const onDrop = useCallback(async (acceptedFiles) => {
         setUploading(true);
         const formData = new FormData();
-        // Upload one by one or modify API for bulk
         for (const file of acceptedFiles) {
             formData.append('image', file);
             try {
-                await api.post(`${endpoint}upload/`, formData, {
+                await axios.post(`${endpoint}upload/`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
             } catch (err) {
@@ -66,7 +51,7 @@ export default function Gallery({ endpoint = '/accounts/me/images/' }) {
         if (!window.confirm("Are you sure you want to delete this image?")) return;
         try {
             setImages(prev => prev.filter(img => img.id !== id)); // Optimistic
-            await api.delete(`${endpoint}${id}/`);
+            await axios.delete(`${endpoint}${id}/`);
         } catch (error) {
             console.error("Delete failed", error);
             fetchImages(); // Revert
@@ -85,12 +70,8 @@ export default function Gallery({ endpoint = '/accounts/me/images/' }) {
         const updatedItems = items.map((item, index) => ({ ...item, order: index }));
         setImages(updatedItems);
 
-        // API Call (Update the moved item's order)
-        // Ideally backend supports bulk reorder. For now patching the moved item.
-        // Or strictly patch all changed items.
-        // Detailed implementation depends on backend logic.
         try {
-            await api.patch(`${endpoint}${reorderedItem.id}/reorder/`, {
+            await axios.patch(`${endpoint}${reorderedItem.id}/reorder/`, {
                 order: result.destination.index
             });
         } catch (err) {

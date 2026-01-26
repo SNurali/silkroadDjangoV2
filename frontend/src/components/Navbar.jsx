@@ -3,17 +3,15 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import {
-  Menu, X, Bell, Sun, Moon, Globe,
-  User, Settings, LogOut, ChevronDown, Check
+  Menu, X, Bell, Sun, Moon,
+  User, Settings, LogOut
 } from 'lucide-react';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import api, { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
-import SilkRoadLogo from './SilkRoadLogo';
+import { getNotifications, markAllNotificationsRead } from '../services/api';
 import LanguageSwitcher from './LanguageSwitcher';
 
-// --- Utility Components ---
+// --- Components ---
 
 const NavItem = ({ to, children }) => {
   return (
@@ -21,27 +19,30 @@ const NavItem = ({ to, children }) => {
       to={to}
       className={({ isActive }) =>
         twMerge(
-          "relative px-3 py-2 text-sm font-medium transition-colors duration-300 rounded-lg group",
+          "relative px-4 py-2 text-sm font-medium transition-all duration-300 rounded-full group",
           isActive
-            ? "text-indigo-600 dark:text-indigo-400"
-            : "text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
+            ? "text-white"
+            : "text-gray-300 hover:text-white"
         )
       }
     >
       {({ isActive }) => (
         <>
-          <span className="relative z-10">{children}</span>
-          {/* Hover Glow & Scale Effect */}
-          <span className="absolute inset-0 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="relative z-10 flex items-center gap-2">
+            {children}
+          </span>
+
+          {/* Hover Glow - Subtle */}
+          <span className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
 
           {/* Active Underline Gradient */}
           {isActive && (
             <motion.div
-              layoutId="navbar-underline"
-              className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-600 to-blue-500 rounded-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
+              layoutId="navbar-activeline"
+              className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-amber-400 to-amber-600 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              transition={{ duration: 0.4, type: "spring" }}
             />
           )}
         </>
@@ -50,52 +51,64 @@ const NavItem = ({ to, children }) => {
   );
 };
 
-const IconButton = ({ onClick, icon: Icon, badgeCount, active }) => (
+const IconButton = ({ onClick, icon: Icon, badgeCount, active, className }) => (
   <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
+    whileHover={{ scale: 1.1, rotate: 12 }}
+    whileTap={{ scale: 0.9 }}
     onClick={onClick}
     className={twMerge(
-      "relative p-2.5 rounded-full transition-all duration-300",
+      "relative p-2 rounded-full transition-colors duration-300",
       active
-        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-100 dark:ring-indigo-500/30"
-        : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+        ? "text-amber-400 bg-amber-400/10 ring-1 ring-amber-400/30"
+        : "text-gray-400 hover:text-amber-400 hover:bg-white/5",
+      className
     )}
   >
-    <Icon size={20} strokeWidth={2} />
+    <Icon size={22} strokeWidth={1.5} />
     {badgeCount > 0 && (
-      <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
+      <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#0f0703] animate-pulse">
         {badgeCount > 9 ? '9+' : badgeCount}
       </span>
     )}
   </motion.button>
 );
 
-// --- Main Component ---
+// --- Main Navbar ---
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null); // 'lang', 'profile', 'notif'
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Scroll Detection
+  // Scroll Animation Hooks
   const { scrollY } = useScroll();
+  const navBackground = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(15, 7, 3, 0)", "rgba(15, 7, 3, 0.85)"] // Warm dark transparent -> blurred
+  );
+  const navBackdropBlur = useTransform(scrollY, [0, 50], ["0px", "12px"]);
+  const navHeight = useTransform(scrollY, [0, 50], ["96px", "70px"]);
+  const navBorder = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(245, 158, 11, 0)", "rgba(245, 158, 11, 0.15)"] // Amber border fade in
+  );
 
   useEffect(() => {
     return scrollY.on("change", (latest) => {
-      setIsScrolled(latest > 20);
+      setIsScrolled(latest > 50);
     });
   }, [scrollY]);
 
-  // Theme Sync
+  // Theme & Notifications Logic
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -106,25 +119,14 @@ export default function Navbar() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Language Sync
-  const currentLang = i18n.language || 'en';
-  const handleLangChange = (lang) => {
-    i18n.changeLanguage(lang);
-    handleDropdownClose();
-  };
-
-  // Notifications
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
+  // Basic polling for notifs
   useEffect(() => {
     if (user) {
       const fetchNotifs = async () => {
         try {
           const res = await getNotifications();
           setNotifications(res.results || res);
-        } catch (e) {
-          console.error("Notif fetch error", e);
-        }
+        } catch (e) { console.error(e); }
       };
       fetchNotifs();
       const interval = setInterval(fetchNotifs, 60000);
@@ -132,85 +134,64 @@ export default function Navbar() {
     }
   }, [user]);
 
-  const handleDropdownToggle = (menu) => {
-    setActiveDropdown(activeDropdown === menu ? null : menu);
-  };
-
-  const handleDropdownClose = () => {
-    setActiveDropdown(null);
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = () => {
     logout();
     navigate('/login');
-    handleDropdownClose();
-  };
-
-  // --- Animation Variants ---
-  const dropdownVariants = {
-    hidden: { opacity: 0, y: 10, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.2, ease: "easeOut" } },
-    exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.15 } }
-  };
-
-  // --- Flags Map ---
-  const flags = {
-    en: "🇺🇸",
-    ru: "🇷🇺",
-    uz: "🇺🇿"
+    setActiveDropdown(null);
   };
 
   return (
     <>
       <motion.nav
-        className={twMerge(
-          "fixed top-0 left-0 right-0 z-[100] border-b transition-all duration-300 ease-in-out",
-          isScrolled
-            ? "bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-800/50 shadow-md h-16"
-            : "bg-white dark:bg-slate-900 border-transparent h-24"
-        )}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        style={{
+          backgroundColor: navBackground,
+          backdropFilter: navBackdropBlur,
+          height: navHeight,
+          borderBottom: '1px solid',
+          borderColor: navBorder
+        }}
+        className="fixed top-0 left-0 right-0 z-[100] transition-colors duration-500 ease-out"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full">
 
-            {/* Logo Section */}
-            <motion.div
-              className="flex-shrink-0 flex items-center gap-2"
-              layout
-            >
-              <Link to="/" className="group relative flex items-center">
-                <SilkRoadLogo
-                  className={twMerge(
-                    "transition-all duration-300",
-                    isScrolled ? "text-2xl md:text-3xl" : "text-3xl md:text-4xl"
-                  )}
-                />
-              </Link>
-            </motion.div>
+            {/* --- Logo --- */}
+            <Link to="/" className="group relative flex items-center gap-1 min-w-[140px]">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="flex items-baseline"
+              >
+                <span className="text-2xl md:text-3xl font-bold text-white tracking-tight drop-shadow-lg">Silk</span>
+                <span className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-400 via-amber-500 to-orange-600 bg-clip-text text-transparent tracking-tighter ml-0.5 group-hover:brightness-125 transition-all">Road.</span>
+              </motion.div>
+              <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-1">
+            {/* --- Desktop Menu --- */}
+            <div className="hidden lg:flex items-center gap-1">
               {[
-                { name: t('navbar.hotels', 'Hotels'), to: '/hotels' },
-                { name: t('navbar.flights', 'Flights'), to: '/flights' },
-                { name: t('navbar.tours', 'Tours'), to: '/tours' },
-                { name: t('navbar.cabs', 'Cabs'), to: '/cabs' },
-                { name: t('navbar.visa', 'Visa'), to: '/visa' },
-                { name: t('navbar.blog', 'Blog'), to: '/blog' },
-                { name: t('navbar.contact', 'Contact'), to: '/contact' },
+                { name: t('navbar.hotels'), to: '/hotels' },
+                { name: t('navbar.flights'), to: '/flights' },
+                { name: t('navbar.tours'), to: '/tours' },
+                { name: t('navbar.cabs'), to: '/cabs' },
+                { name: t('navbar.visa'), to: '/visa' },
+                { name: t('navbar.blog'), to: '/blog' },
               ].map((item) => (
                 <NavItem key={item.to} to={item.to}>{item.name}</NavItem>
               ))}
             </div>
 
-            {/* Right Actions */}
-            <div className="hidden lg:flex items-center gap-3">
+            {/* --- Right Actions --- */}
+            <div className="hidden lg:flex items-center gap-4">
 
-              {/* Language Switcher */}
-              <div className="relative z-50">
+              {/* Language (Wrapper for existing component for layout) */}
+              <div className="relative z-50 opacity-80 hover:opacity-100 transition-opacity">
                 <LanguageSwitcher />
               </div>
 
@@ -218,6 +199,7 @@ export default function Navbar() {
               <IconButton
                 icon={theme === 'dark' ? Moon : Sun}
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="hover:rotate-45"
               />
 
               {/* Notifications */}
@@ -226,32 +208,44 @@ export default function Navbar() {
                   icon={Bell}
                   badgeCount={unreadCount}
                   active={activeDropdown === 'notif'}
-                  onClick={() => handleDropdownToggle('notif')}
+                  onClick={() => setActiveDropdown(activeDropdown === 'notif' ? null : 'notif')}
                 />
                 <AnimatePresence>
                   {activeDropdown === 'notif' && (
                     <motion.div
-                      variants={dropdownVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      className="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-4 w-80 bg-[#120a05] border border-amber-900/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5 backdrop-blur-xl"
                     >
-                      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center backdrop-blur-sm">
-                        <h4 className="font-semibold text-sm text-slate-900 dark:text-white">Notifications</h4>
-                        {unreadCount > 0 && (
-                          <button onClick={markAllNotificationsRead} className="text-xs text-indigo-600 hover:underline font-medium">Clear all</button>
-                        )}
+                      <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <span className="text-sm font-bold text-amber-500">{t('navbar.notifications')}</span>
+                        {unreadCount > 0 && <button onClick={markAllNotificationsRead} className="text-xs text-gray-400 hover:text-white transition-colors">{t('navbar.clear_all')}</button>}
                       </div>
-                      <div className="max-h-[300px] overflow-y-auto">
+                      <div className="max-h-64 overflow-y-auto custom-scrollbar">
                         {notifications.length === 0 ? (
-                          <div className="p-8 text-center text-slate-500 text-sm">No new notifications</div>
+                          <div className="p-6 text-center text-gray-500 text-sm">{t('navbar.no_notifications')}</div>
                         ) : (
-                          notifications.map((n) => (
-                            <div key={n.id} className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0 relative">
-                              {!n.is_read && <span className="absolute left-1 top-4 w-1.5 h-1.5 bg-blue-500 rounded-full" />}
-                              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium truncate">{n.title}</p>
-                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{n.message}</p>
+                          notifications.map(n => (
+                            <div
+                              key={n.id}
+                              onClick={async () => {
+                                if (n.link) {
+                                  navigate(n.link);
+                                  setActiveDropdown(null);
+                                }
+                                if (!n.is_read) {
+                                  // Optimistically mark read
+                                  setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, is_read: true } : item));
+                                  try {
+                                    await markNotificationRead(n.id);
+                                  } catch (e) { console.error(e); }
+                                }
+                              }}
+                              className={`p-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-50' : 'bg-white/5 border-l-2 border-l-amber-500'}`}
+                            >
+                              <p className="text-sm text-gray-200">{n.title}</p>
+                              <p className="text-xs text-gray-500">{n.message}</p>
                             </div>
                           ))
                         )}
@@ -261,48 +255,43 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {/* Profile */}
+              {/* Vertical Divider */}
+              <div className="h-6 w-[1px] bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
+
+              {/* Auth Buttons */}
               {user ? (
-                <div className="relative ml-2">
+                <div className="relative">
                   <motion.button
-                    onClick={() => handleDropdownToggle('profile')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="relative p-0.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500"
+                    onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
+                    className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full bg-white/5 border border-white/10 hover:border-amber-500/30 transition-all"
                   >
-                    <div className="rounded-full p-0.5 bg-white dark:bg-slate-950">
-                      <img
-                        src={user.avatar_url || user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff`}
-                        alt="Profile"
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    </div>
-                    {/* Online Status */}
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                    <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.name}&background=f59e0b&color=fff`} className="w-8 h-8 rounded-full border border-gray-800 object-cover" alt="avatar" />
+                    <span className="text-sm font-medium text-gray-200">{user.name.split(' ')[0]}</span>
                   </motion.button>
 
                   <AnimatePresence>
                     {activeDropdown === 'profile' && (
                       <motion.div
-                        variants={dropdownVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-4 w-56 bg-[#120a05] border border-amber-900/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5"
                       >
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                        <div className="p-4 border-b border-white/5 bg-gradient-to-r from-amber-500/10 to-transparent">
+                          <p className="text-sm font-bold text-white">{user.name}</p>
+                          <p className="text-xs text-amber-500">{user.email}</p>
                         </div>
-                        <div className="p-2">
-                          <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                            <User size={16} /> {t('navbar.profile', 'Profile')}
+                        <div className="p-2 space-y-1">
+                          <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
+                            <User size={16} /> {t('navbar.profile')}
                           </Link>
-                          <Link to="/vendor" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                            <Settings size={16} /> {t('navbar.vendor', 'Vendor Dashboard')}
+                          <Link to="/vendor" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
+                            <Settings size={16} /> {t('navbar.vendor')}
                           </Link>
-                          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors mt-1">
-                            <LogOut size={16} /> {t('navbar.signout', 'Sign Out')}
+                          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                            <LogOut size={16} /> {t('navbar.signout')}
                           </button>
                         </div>
                       </motion.div>
@@ -310,39 +299,36 @@ export default function Navbar() {
                   </AnimatePresence>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 ml-2">
-                  <Link to="/login" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    {t('navbar.signin', 'Sign In')}
+                <div className="flex items-center gap-3">
+                  <Link to="/login">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-5 py-2.5 text-sm font-semibold text-amber-400 hover:text-amber-300 border border-amber-500/30 rounded-full hover:bg-amber-500/10 transition-all"
+                    >
+                      {t('navbar.signin')}
+                    </motion.button>
                   </Link>
-                  <Link to="/register" className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-200"></div>
-                    <button className="relative px-5 py-2 bg-white dark:bg-slate-900 rounded-lg leading-none flex items-center">
-                      <span className="text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                        {t('navbar.signup', 'Get Started')}
-                      </span>
-                    </button>
+                  <Link to="/register">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-2.5 text-sm font-bold text-white rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all"
+                    >
+                      {t('navbar.signup')}
+                    </motion.button>
                   </Link>
                 </div>
               )}
-
-              {/* Mobile Toggle */}
-              <button
-                className="lg:hidden p-2 text-slate-600 dark:text-slate-300"
-                onClick={() => setIsMobileMenuOpen(true)}
-              >
-                <Menu size={24} />
-              </button>
             </div>
 
-            {/* Mobile Only: Simple right align if needed (e.g. if we want logo center)
-                For now, preserving typical left-logo, right-menu structure for mobile.
-            */}
-            <div className="lg:hidden flex items-center gap-4">
+            {/* --- Mobile Hamburger --- */}
+            <div className="lg:hidden flex items-center">
               <button
-                className="p-2 text-slate-600 dark:text-slate-300"
                 onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 text-white/80 hover:text-amber-400 transition-colors"
               >
-                <Menu size={24} />
+                <Menu size={28} />
               </button>
             </div>
           </div>
@@ -354,38 +340,38 @@ export default function Navbar() {
         {isMobileMenuOpen && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110]"
               onClick={() => setIsMobileMenuOpen(false)}
             />
             <motion.div
-              className="fixed top-0 left-0 bottom-0 w-[80%] max-w-sm bg-white dark:bg-slate-900 z-[120] shadow-2xl overflow-y-auto"
-              initial={{ x: "-100%" }}
-              animate={{ x: "0%" }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 right-0 w-[85%] max-w-sm bg-[#0f0703] border-l border-white/10 shadow-2xl z-[120] overflow-y-auto"
             >
               <div className="p-6 space-y-8">
                 <div className="flex items-center justify-between">
-                  <img
-                    src={theme === 'dark' ? "/silkroad-logo-dark-theme.png" : "/silkroad-logo-light-theme.png"}
-                    alt="SilkRoad"
-                    className="h-10 w-auto"
-                  />
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
-                    <X size={20} className="text-slate-600 dark:text-slate-300" />
-                  </button>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-600 bg-clip-text text-transparent">SilkRoad.</span>
+                  <motion.button
+                    whileTap={{ rotate: 90 }}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 rounded-full bg-white/5 text-gray-400 hover:text-white"
+                  >
+                    <X size={24} />
+                  </motion.button>
                 </div>
 
-                {/* Mobile Links */}
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {[
                     { name: t('navbar.hotels'), to: '/hotels' },
                     { name: t('navbar.flights'), to: '/flights' },
                     { name: t('navbar.tours'), to: '/tours' },
                     { name: t('navbar.cabs'), to: '/cabs' },
+                    { name: t('navbar.visa'), to: '/visa' },
                     { name: t('navbar.blog'), to: '/blog' },
                   ].map(item => (
                     <NavLink
@@ -393,10 +379,10 @@ export default function Navbar() {
                       to={item.to}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => twMerge(
-                        "block px-4 py-3 rounded-xl text-base font-semibold transition-colors",
+                        "block px-4 py-3 rounded-xl text-lg font-medium transition-all",
                         isActive
-                          ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          ? "bg-gradient-to-r from-amber-500/20 to-transparent text-amber-500 border-l-2 border-amber-500"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
                       )}
                     >
                       {item.name}
@@ -404,51 +390,36 @@ export default function Navbar() {
                   ))}
                 </div>
 
-                {/* Mobile Actions */}
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-500">Theme</span>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                      <button onClick={() => setTheme('light')} className={twMerge("p-2 rounded-md transition-all", theme === 'light' ? "bg-white shadow text-indigo-600" : "text-slate-400")}>
-                        <Sun size={18} />
-                      </button>
-                      <button onClick={() => setTheme('dark')} className={twMerge("p-2 rounded-md transition-all", theme === 'dark' ? "bg-slate-700 shadow text-indigo-400" : "text-slate-400")}>
-                        <Moon size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-500">Language</span>
-                    <div className="flex gap-2">
-                      {Object.keys(flags).map(code => (
-                        <button key={code} onClick={() => handleLangChange(code)} className={twMerge("text-xl p-1 rounded border", currentLang === code ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-transparent opacity-50")}>
-                          {flags[code]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {user ? (
-                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3 mb-4">
-                      <img src={user.avatar_url || user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="h-10 w-10 rounded-full" alt="" />
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{user.name}</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
-                      </div>
-                    </div>
-                    <button onClick={handleLogout} className="w-full py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 font-semibold flex items-center justify-center gap-2">
-                      <LogOut size={18} /> Sign Out
+                <div className="pt-8 border-t border-white/10 space-y-6">
+                  {/* Mobile Actions */}
+                  <div className="flex items-center justify-between px-4">
+                    <span className="text-gray-400 text-sm">{t('navbar.theme')}</span>
+                    <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 bg-white/5 rounded-lg text-amber-400">
+                      {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
                   </div>
-                ) : (
-                  <div className="pt-6 grid grid-cols-2 gap-3">
-                    <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-center rounded-xl bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200">Log In</Link>
-                    <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-center rounded-xl bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-500/30">Sign Up</Link>
-                  </div>
-                )}
+
+                  {user ? (
+                    <div className="px-4">
+                      <div className="flex items-center gap-4 mb-6">
+                        <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.name}`} className="w-12 h-12 rounded-full ring-2 ring-amber-500/50 object-cover" alt="" />
+                        <div>
+                          <p className="text-white font-bold">{user.name}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="py-2.5 text-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm">{t('navbar.profile')}</Link>
+                        <button onClick={handleLogout} className="py-2.5 text-center rounded-lg bg-red-500/10 text-red-400 text-sm">{t('navbar.signout')}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 px-4">
+                      <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-center rounded-xl border border-white/10 text-white font-semibold">{t('navbar.signin')}</Link>
+                      <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-center rounded-xl bg-amber-500 text-black font-bold shadow-lg shadow-amber-500/20">{t('navbar.signup')}</Link>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>

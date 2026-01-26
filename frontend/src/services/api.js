@@ -11,8 +11,16 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
+        console.log("API Request Interceptor:");
+        console.log("URL:", config.url);
+        console.log("Token raw:", token);
+        console.log("Token type:", typeof token);
+        if (token) console.log("Token length:", token.length);
+
         if (token && token !== 'undefined' && token !== 'null') {
-            config.headers.Authorization = `Bearer ${token}`;
+            const authHeader = `Bearer ${token}`;
+            console.log("Setting Authorization Header:", authHeader);
+            config.headers.Authorization = authHeader;
         }
         return config;
     },
@@ -156,6 +164,11 @@ export const login = async (credentials) => {
     // POST /accounts/login/ {email, password}
     const response = await api.post('/accounts/login/', credentials);
     return response.data; // Should contain {access, refresh}
+};
+
+export const googleLogin = async (token) => {
+    const response = await api.post('/accounts/auth/google/', { token });
+    return response.data;
 };
 
 // User Profile / Gallery
