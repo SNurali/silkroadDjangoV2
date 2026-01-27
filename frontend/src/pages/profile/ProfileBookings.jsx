@@ -4,6 +4,7 @@ import api from '../../services/api';
 import ProfileLayout from './ProfileLayout';
 import { Building, Map, Plane, Calendar, MapPin, Clock, Search, ExternalLink, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BookingStatusHistory from '../../components/booking/BookingStatusHistory';
 
 export default function ProfileBookings() {
     const { t } = useTranslation();
@@ -114,7 +115,25 @@ export default function ProfileBookings() {
                                                             <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter">
                                                                 {(booking.total_price || 0).toLocaleString()} <span className="text-[10px] uppercase font-bold text-slate-400 not-italic">UZS</span>
                                                             </div>
+                                                            <a
+                                                                href={`/api/hotels/bookings/${booking.id}/download/`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <ExternalLink size={10} />
+                                                                Download Voucher
+                                                            </a>
                                                         </div>
+                                                    </div>
+
+                                                    {/* Expansion for Timeline */}
+                                                    <div className="mt-6 border-t border-slate-50 dark:border-slate-800/50">
+                                                        <BookingStatusHistory
+                                                            status={booking.booking_status}
+                                                            syncStatus={booking.emehmon_id}
+                                                            type="hotel"
+                                                        />
                                                     </div>
                                                 </BookingCard>
                                             ))
@@ -156,6 +175,17 @@ export default function ProfileBookings() {
                                                             <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter">
                                                                 {(ticket.total_amount || 0).toLocaleString()} <span className="text-[10px] uppercase font-bold text-slate-400 not-italic">UZS</span>
                                                             </div>
+                                                            {ticket.is_paid && (
+                                                                <a
+                                                                    href={`/api/hotels/tickets/${ticket.id}/download/`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                                                >
+                                                                    <ExternalLink size={10} />
+                                                                    Download Ticket
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </BookingCard>
@@ -211,8 +241,8 @@ export default function ProfileBookings() {
                         </AnimatePresence>
                     )}
                 </div>
-            </div>
-        </ProfileLayout>
+            </div >
+        </ProfileLayout >
     );
 }
 
@@ -246,6 +276,8 @@ const StatusBadge = ({ status }) => {
         active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200',
         pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200',
         cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200',
+        rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200',
+        synced: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200',
     };
     const colorClass = colors[status?.toLowerCase()] || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200';
 

@@ -141,6 +141,43 @@ const Profile = () => {
     <ProfileLayout activePage="profile">
       <div className="max-w-4xl mx-auto py-4">
 
+        {/* E-Mehmon Foreigner Status Widget (Enterprise Phase 4) */}
+        {user?.is_foreigner && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-xl relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <ShieldCheck size={120} />
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter italic mb-1">
+                  E-Mehmon Citizen Status
+                </h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="px-2 py-0.5 bg-emerald-500 text-[10px] font-black uppercase rounded">Verified</span>
+                  <span className="text-xs font-bold text-indigo-100">Sync: {new Date().toLocaleDateString()}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-indigo-200">Visa Expiry</p>
+                    <p className="font-bold">12.04.2026</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-indigo-200">Registration</p>
+                    <p className="font-bold">Active (Tashkent)</p>
+                  </div>
+                </div>
+              </div>
+              <button className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg active:scale-95">
+                Re-Sync Data
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Status Notifications */}
         <AnimatePresence>
           {status.message && (

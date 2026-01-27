@@ -11,6 +11,7 @@ from .serializers import (
     RegisterSerializer, UserProfileSerializer, ChangePasswordSerializer
 )
 from .permissions import IsOwner, IsVendor
+from .views_agent import AgentDashboardAPIView
 
 # -------------------------------------------------------------------------
 # Auth Views (Restored)
@@ -63,6 +64,33 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        
+        # Phase 9: e-mehmon Sync for Foreigners
+        if instance.is_foreigner and instance.passport and instance.id_citizen:
+            try:
+                from hotels.services.emehmon import EMehmonService
+                from .models import ForeignProfileData
+                
+                service = EMehmonService()
+                res = service.get_foreigner_full_data(instance.passport, instance.id_citizen)
+                
+                if res['success']:
+                    f_data = res['data']
+                    # Simplified mapping to model
+                    ForeignProfileData.objects.update_or_create(
+                        user=instance,
+                        defaults={
+                            'entry_date': f_data.get('entry_date'),
+                            'days_remaining': f_data.get('days_left', 0),
+                            'has_violations': bool(f_data.get('violations')),
+                            'current_registration_place': f_data.get('current_registration'),
+                            'visa_expiry_date': f_data.get('visa_expiry')
+                        }
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Foreigner Sync Error: {str(e)}")
+
         serializer = self.get_serializer(instance)
         data = serializer.data
         

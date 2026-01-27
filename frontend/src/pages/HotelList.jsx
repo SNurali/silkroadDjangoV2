@@ -5,6 +5,11 @@ import { MapPin, Star, Calendar, Users, SlidersHorizontal, Search } from 'lucide
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { getLocalized, getCookie } from '../utils/i18n';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, parseISO, isValid } from "date-fns";
+import { ru, uz, enUS } from 'date-fns/locale';
+import CompactSearchBar from '../components/ui/SearchBar';
 
 const HotelList = () => {
     const { t } = useTranslation();
@@ -16,8 +21,11 @@ const HotelList = () => {
     const [selectedStars, setSelectedStars] = useState([]);
     const [filters, setFilters] = useState({
         location: searchParams.get('location') || '',
-        dates: searchParams.get('dates') || '',
-        guests: searchParams.get('guests') || '2 Guests 1 Room',
+        startDate: searchParams.get('check_in') ? parseISO(searchParams.get('check_in')) : null,
+        endDate: searchParams.get('check_out') ? parseISO(searchParams.get('check_out')) : null,
+        adults: searchParams.get('adults') || '2',
+        children: searchParams.get('children') || '0',
+        rooms: searchParams.get('rooms') || '1',
     });
 
     const fetchHotels = async () => {
@@ -25,8 +33,12 @@ const HotelList = () => {
         try {
             const apiParams = {
                 ...filters,
+                check_in: filters.startDate && isValid(filters.startDate) ? format(filters.startDate, 'yyyy-MM-dd') : undefined,
+                check_out: filters.endDate && isValid(filters.endDate) ? format(filters.endDate, 'yyyy-MM-dd') : undefined,
                 price_max: priceRange,
             };
+            delete apiParams.startDate;
+            delete apiParams.endDate;
 
             if (selectedStars.length > 0) {
                 // If backend supports list, otherwise we might need multiple params or custom logic
@@ -123,7 +135,7 @@ const HotelList = () => {
                             <span className="text-gray-500 dark:text-slate-400 text-sm"> {t('hotel_detail.per_night')}</span>
                         </div>
                         <Link
-                            to={`/hotels/${hotel.id}`}
+                            to={`/hotels/${hotel.id}?${searchParams.toString()}`}
                             className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
                         >
                             {t('hotel_list.view_details')}
@@ -137,63 +149,34 @@ const HotelList = () => {
     return (
         <div className="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-200">
             {/* Filter Section (Hero Simplified) */}
-            <div className="bg-indigo-900 dark:bg-indigo-950 text-white pt-32 pb-12 px-4 transition-colors">
+            <div className="bg-indigo-900 dark:bg-indigo-950 text-white pt-24 pb-20 px-4 transition-colors">
                 <div className="max-w-7xl mx-auto">
                     <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center">{t('hotel_list.title', { count: hotels.length })}</h1>
 
-                    {/* Search Bar */}
-                    <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 text-gray-700 dark:text-slate-200 transition-colors">
-                        <div className="flex items-center gap-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 p-2">
-                            <MapPin className="text-indigo-500 dark:text-indigo-400" />
-                            <div className="flex flex-col w-full">
-                                <label className="text-xs font-semibold uppercase text-gray-400 dark:text-slate-500">{t('filters.location')}</label>
-                                <input
-                                    type="text"
-                                    placeholder={t('filters.select_location')}
-                                    className="outline-none font-medium w-full bg-transparent dark:placeholder:text-slate-500"
-                                    value={filters.location}
-                                    onChange={e => setFilters({ ...filters, location: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 p-2">
-                            <Calendar className="text-indigo-500 dark:text-indigo-400" />
-                            <div className="flex flex-col w-full">
-                                <label className="text-xs font-semibold uppercase text-gray-400 dark:text-slate-500">{t('filters.check_in_out')}</label>
-                                <input
-                                    type="text"
-                                    placeholder={t('filters.date_range')}
-                                    className="outline-none font-medium w-full bg-transparent dark:placeholder:text-slate-500"
-                                    value={filters.dates}
-                                    onChange={e => setFilters({ ...filters, dates: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 p-2">
-                            <Users className="text-indigo-500 dark:text-indigo-400" />
-                            <div className="flex flex-col w-full">
-                                <label className="text-xs font-semibold uppercase text-gray-400 dark:text-slate-500">{t('filters.guests')}</label>
-                                <input
-                                    type="text"
-                                    placeholder={t('filters.guests')}
-                                    className="outline-none font-medium w-full bg-transparent dark:placeholder:text-slate-500"
-                                    value={filters.guests}
-                                    onChange={e => setFilters({ ...filters, guests: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-center p-2">
-                            <button
-                                onClick={() => {
-                                    // Main search button also applies the current filters
-                                    fetchHotels();
-                                }}
-                                className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white p-3 rounded-lg w-full font-bold flex items-center justify-center gap-2 transition-colors"
-                            >
-                                <Search size={20} />
-                                {t('filters.search')}
-                            </button>
-                        </div>
+                    {/* Compact Search Bar */}
+                    <div className="max-w-6xl mx-auto -mb-20 relative z-50">
+                        <CompactSearchBar
+                            onSearch={(data) => {
+                                setFilters({
+                                    location: data.location,
+                                    startDate: data.startDate,
+                                    endDate: data.endDate,
+                                    adults: data.adults,
+                                    children: data.children,
+                                    rooms: data.rooms,
+                                });
+                                // fetchHotels will be triggered by filter changes if we add it to useEffect or call it manually
+                                fetchHotels(); // Manually call it
+                            }}
+                            initialData={{
+                                location: filters.location,
+                                startDate: filters.startDate,
+                                endDate: filters.endDate,
+                                adults: parseInt(filters.adults),
+                                children: parseInt(filters.children),
+                                rooms: parseInt(filters.rooms),
+                            }}
+                        />
                     </div>
                 </div>
             </div>

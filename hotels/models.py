@@ -105,8 +105,10 @@ class Sight(models.Model):
         verbose_name=_('статус')
     )
 
-    is_foreg = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для иностранцев'))
-    is_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для местных'))
+    is_foreg = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для иностранцев (будни)'))
+    is_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для местных (будни)'))
+    is_weekend_foreg = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для иностранцев (выходные)'))
+    is_weekend_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('цена для местных (выходные)'))
 
     max_capacity = models.IntegerField(null=True, blank=True, verbose_name=_('макс. вместимость'))
     opening_times = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('время работы'))
@@ -291,6 +293,9 @@ class Hotel(models.Model):
     stars = models.IntegerField(default=0, verbose_name=_('количество звезд'))
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0, verbose_name=_('рейтинг пользователей'))
     
+    # e-mehmon Integration
+    emehmon_id = models.CharField(max_length=255, blank=True, null=True, unique=True, verbose_name=_('ID в e-mehmon'))
+    
     # Pricing (Legacy)
     deposit = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('депозит (цена)'))
     deposit_turizm = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('депозит (туризм)'))
@@ -403,6 +408,12 @@ class RoomType(models.Model):
     en = models.CharField(max_length=255, verbose_name=_('type_en'))
     ru = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('type_ru'))
     uz = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('type_uz'))
+    
+    # e-mehmon / Enterprise fields
+    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name='enterprise_room_types', null=True, verbose_name=_('отель'))
+    capacity = models.PositiveIntegerField(default=1, verbose_name=_('вместимость'))
+    price_ref = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name=_('базовая цена (ref)'))
+    emehmon_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('ID в e-mehmon'))
 
     class Meta:
         db_table = 'tb_room_types'
@@ -584,3 +595,58 @@ class TicketDetail(models.Model):
 
     def __str__(self):
         return f'{self.guest_name} ({self.status})'
+
+
+class HotelComment(models.Model):
+    """
+    Комментарий/отзыв об отеле (Legacy: tb_hotel_comment).
+    """
+    hotel = models.ForeignKey(
+        Hotel,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        null=True,
+        blank=True,
+        verbose_name=_('отель')
+    )
+    sight = models.ForeignKey(
+        Sight,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        null=True,
+        blank=True,
+        verbose_name=_('достопримечательность')
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='hotel_comments',
+        verbose_name=_('пользователь')
+    )
+    rating = models.IntegerField(
+        default=5,
+        choices=[(i, str(i)) for i in range(1, 6)],
+        verbose_name=_('рейтинг')
+    )
+    comment = models.TextField(verbose_name=_('комментарий'))
+    status = models.CharField(
+        max_length=20,
+        default='pending',
+        choices=[
+            ('pending', 'Pending'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected')
+        ],
+        verbose_name=_('статус модерации')
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('создано'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('обновлено'))
+
+    class Meta:
+        db_table = 'tb_hotel_comment'
+        verbose_name = _('комментарий об отеле')
+        verbose_name_plural = _('комментарии об отелях')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.name} - {self.hotel.name} ({self.rating}/5)'

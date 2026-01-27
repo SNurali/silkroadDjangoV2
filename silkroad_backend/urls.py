@@ -21,8 +21,23 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('api/cabs/', include('cabs.urls')),
     path('api/blog/', include('blog.urls')),
+    path('api/chat/', include('support_chatbot.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # CAPTCHA
+    path('captcha/', include('captcha.urls')),
+    
+    # Google OAuth Redirect (Parity with Laravel config)
+    path('auth/callback/google', include([
+        path('', include('accounts.urls_oauth')),
+    ])),
+    
+    # AllAuth - Social Authentication
+    path('accounts/', include('allauth.urls')),
+    
+    # Admin Panel
+    path('admin-panel/', include('admin_panel.urls')),
 ]
 
 urlpatterns += i18n_patterns(

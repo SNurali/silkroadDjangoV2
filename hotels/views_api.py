@@ -1,12 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
-from .models import Sight, Ticket, TicketDetail
-from .serializers import TicketCreateSerializer
+from django.db.models import Avg, Count, Q
+from captcha.models import CaptchaStore
+from captcha.helpers import captcha_image_url
+from .models import Sight, Ticket, TicketDetail, HotelComment, Hotel
+from .serializers import TicketCreateSerializer, HotelCommentSerializer
 import base64
 import hashlib
 import json
@@ -30,20 +33,34 @@ class TicketPurchaseView(APIView):
         except Sight.DoesNotExist:
             return Response({"error": "Sight not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        tour_date = data.get('tour_date', timezone.now().date())
+        is_weekend = tour_date.weekday() >= 5 # 5=Sat, 6=Sun
+
         total_amount = 0
         valid_guests = []
 
         # Calculate Price
         for guest in guests:
             citizen_id = guest.get('citizen')
-            # Logic: 173 = Local, Else = Foreigner
-            price = sight.is_local if citizen_id == 173 else sight.is_foreg
+            # 173 = Local (Uzbekistan)
+            is_local = citizen_id == 173
             
+            # Select correct price attribute
+            if is_local:
+                price = sight.is_weekend_local if is_weekend else sight.is_local
+            else:
+                price = sight.is_weekend_foreg if is_weekend else sight.is_foreg
+            
+            # Fallback if weekend price is 0 but weekday isn't
+            if is_weekend and price == 0:
+                price = sight.is_local if is_local else sight.is_foreg
+
             valid_guests.append({
                 'name': guest['name'],
                 'passport': guest['passport'],
                 'citizen': citizen_id,
-                'amount': float(price) # Convert Decimal to float for JSON serializable if needed
+                'amount': float(price),
+                'is_weekend': is_weekend
             })
             total_amount += price
 
@@ -173,3 +190,102 @@ class BookingViewSet(viewsets.ModelViewSet):
         # For now, simplistic check or just pass (since legacy logic was commented out!)
         
         return Response({'available': True, 'message': 'Rooms available'})
+
+
+class HotelCommentListCreateView(generics.ListCreateAPIView):
+    """
+    List and create hotel comments.
+    GET: Returns all approved comments for a hotel.
+    POST: Creates a new comment (authenticated users only).
+    """
+    serializer_class = HotelCommentSerializer
+    
+    def get_queryset(self):
+        hotel_id = self.kwargs.get('hotel_id')
+        sight_id = self.kwargs.get('sight_id')
+        
+        qs = HotelComment.objects.filter(status='approved').select_related('user').order_by('-created_at')
+        if hotel_id:
+            qs = qs.filter(hotel_id=hotel_id)
+        elif sight_id:
+            qs = qs.filter(sight_id=sight_id)
+            
+        return qs
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [AllowAny()]
+    
+    def perform_create(self, serializer):
+        hotel_id = self.kwargs.get('hotel_id')
+        sight_id = self.kwargs.get('sight_id')
+        
+        save_kwargs = {'user': self.request.user, 'status': 'pending'}
+        if hotel_id:
+            save_kwargs['hotel_id'] = hotel_id
+        elif sight_id:
+            save_kwargs['sight_id'] = sight_id
+            
+        serializer.save(**save_kwargs)
+
+
+class HotelCommentStatsView(APIView):
+    """
+    Returns rating statistics for a hotel.
+    GET /api/hotels/{hotel_id}/comments/stats/
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, hotel_id=None, sight_id=None):
+        if hotel_id:
+            comments = HotelComment.objects.filter(hotel_id=hotel_id, status='approved')
+        else:
+            comments = HotelComment.objects.filter(sight_id=sight_id, status='approved')
+        
+        if not comments.exists():
+            return Response({
+                'avg_rating': 0,
+                'total_reviews': 0,
+                'rating_distribution': {str(i): 0 for i in range(1, 6)},
+                'rating_percentages': {str(i): 0 for i in range(1, 6)}
+            })
+        
+        avg_rating = comments.aggregate(Avg('rating'))['rating__avg']
+        total_reviews = comments.count()
+        
+        # Count ratings 1-5
+        rating_counts = {}
+        for i in range(1, 6):
+            rating_counts[str(i)] = comments.filter(rating=i).count()
+        
+        # Calculate percentages
+        rating_percentages = {}
+        for rating, count in rating_counts.items():
+            rating_percentages[rating] = round((count / total_reviews) * 100) if total_reviews > 0 else 0
+        
+        return Response({
+            'avg_rating': round(avg_rating, 1) if avg_rating else 0,
+            'total_reviews': total_reviews,
+            'rating_distribution': rating_counts,
+            'rating_percentages': rating_percentages
+        })
+
+
+class GenerateCaptchaView(APIView):
+    """
+    Generate a new CAPTCHA for review forms.
+    GET /api/hotels/captcha/generate/
+    Returns: {"captcha_key": "abc123", "captcha_image_url": "/captcha/image/abc123/"}
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        # Generate new captcha
+        captcha_key = CaptchaStore.generate_key()
+        captcha_url = captcha_image_url(captcha_key)
+        
+        return Response({
+            'captcha_key': captcha_key,
+            'captcha_image_url': captcha_url
+        })

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class YagonaBillingService:
     def __init__(self):
         self.client_id = settings.YAGONA_BILLING_CLIENT
-        self.client_secret = settings.YAGONA_BILLING_CLIENT_SECRET
+        self.client_secret = settings.YAGONA_BILLING_KLIENT_SECRET
         self.merchant_id = settings.YAGONA_BILLING_MERCHANT_ID
         self.base_url = "https://api.viasandbox.uz"  # or read from env if needed
 

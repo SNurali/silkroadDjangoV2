@@ -51,12 +51,19 @@ class User(AbstractUser):
         choices=[
             ('admin', 'Admin'),
             ('vendor', 'Vendor'),
-            ('agent', 'Agent'),
+            ('vendor_op', 'Vendor Operator'),
+            ('hotel_admin', 'Hotel Admin'),
+            ('moderator', 'Moderator'),
+            ('content_op', 'Content Operator'),
+            ('user', 'User'),
         ],
-        default='agent',
+        default='user',
         db_index=True
     )
     is_active = models.BooleanField(default=True)
+    is_phone_verified = models.BooleanField(default=False, verbose_name=_('Телефон подтвержден'))
+    is_foreigner = models.BooleanField(default=False, verbose_name=_('Иностранец'))
+    
     created_by = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
@@ -150,3 +157,23 @@ class Traveler(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+class ForeignProfileData(models.Model):
+    """
+    Данные иностранного профиля из e-mehmon API.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='foreign_data', verbose_name=_('Пользователь'))
+    entry_date = models.DateField(null=True, blank=True, verbose_name=_('Дата въезда'))
+    days_remaining = models.IntegerField(default=0, verbose_name=_('Осталось дней'))
+    has_violations = models.BooleanField(default=False, verbose_name=_('Есть нарушения'))
+    current_registration_place = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Место текущей регистрации'))
+    visa_expiry_date = models.DateField(null=True, blank=True, verbose_name=_('Срок действия визы'))
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tb_foreign_profile_data'
+        verbose_name = _('Данные иностранца')
+        verbose_name_plural = _('Данные иностранцев')
+
+    def __str__(self):
+        return f"Foreign data for {self.user.email}"

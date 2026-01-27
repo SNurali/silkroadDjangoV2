@@ -49,9 +49,22 @@ Runs on: `http://localhost:5173/`
 -   **Locations API**: New app `locations` providing `/api/locations/countries/` for the Profile dropdown.
 -   **Extended User Profile**: Added `passport`, `dtb`, `sex`, `id_citizen` fields to `User` model and serializer.
 
----
+### 5. Quick Actions & Human Handoff
+- **Quick Action Buttons**: Added localized buttons ("Find Hotel", "Find Tour", "Human Support") above the input area for easy navigation logic.
+- **Human Support**: 
+    - Users can request a human agent.
+    - The system sends a Telegram notification with a **direct link to the chat**.
+    - **Admin Interface**: Admins can click the link (e.g., `http://localhost:3000/support-chat/123`) to view history and reply as "Support".
+    - **Smart Bot Silencing**: Once a human agent joins the chat, the bot will stop auto-replying to prevent interruptions.
+    - **Real-time Updates**: The user widget polls for new messages every 4-5 seconds, so agent replies appear automatically.
+    - **Persistence**: The conversation ID is stored in `localStorage`, so the chat history stays even after refreshing the page.
+    - To enable this, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to `.env`.
 
-## 4. Verification / Как проверить
+### 6. Open WebUI Integration (2026 AI Standard)
+- **Upgraded Brain**: The chatbot now uses **Open WebUI** (local LLM/Ollama compatible) as its primary decision-maker.
+- **2026 Embed Widget**: Added support for the official Open WebUI floating script.
+- **Toggle System**: You can switch between the "Branded SilkRoad Widget" and the "Official Open WebUI Widget" by changing a single flag (`USE_OPEN_WEBUI_EMBED`) in `App.jsx`.
+- **Backend Fallback**: If Open WebUI is not reachable, the system automatically falls back to **Google Gemini**.
 
 ### Public Access
 1.  Open `http://localhost:5173/`.

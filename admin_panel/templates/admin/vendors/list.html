@@ -1,0 +1,92 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Vendors{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Vendors</h1>
+        <a href="{% url 'admin_vendor_create' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+            <i class="fas fa-plus mr-2"></i>New Vendor
+        </a>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sights</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for vendor in vendors %}
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap">{{ vendor.id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium">{{ vendor.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ vendor.region.name|default:'N/A' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ vendor.sights_count }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        {% if vendor.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if vendor.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <a href="{% url 'admin_vendor_detail' vendor.id %}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                        View
+                    </a>
+                    <a href="{% url 'admin_vendor_edit' vendor.id %}" class="text-blue-600 hover:text-blue-900 mr-3">
+                        Edit
+                    </a>
+                    <a href="#" class="delete-vendor text-red-600 hover:text-red-900" data-vendor-id="{{ vendor.id }}">
+                        Delete
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No vendors found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-vendor').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const vendorId = this.getAttribute('data-vendor-id');
+            if (confirm('Are you sure you want to delete this vendor?')) {
+                fetch(`/admin-panel/vendors/${vendorId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@ import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { getNotifications, markAllNotificationsRead } from '../services/api';
 import LanguageSwitcher from './LanguageSwitcher';
+import VendorSwitch from './VendorSwitch';
 
 // --- Components ---
 
@@ -79,6 +80,14 @@ export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Debug: Check user role
+  useEffect(() => {
+    if (user) {
+      console.log('Navbar user:', user);
+      console.log('User role:', user.role);
+    }
+  }, [user]);
 
   // State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -190,6 +199,9 @@ export default function Navbar() {
             {/* --- Right Actions --- */}
             <div className="hidden lg:flex items-center gap-4">
 
+              {/* Vendor Switch */}
+              <VendorSwitch className="mr-2" />
+
               {/* Language (Wrapper for existing component for layout) */}
               <div className="relative z-50 opacity-80 hover:opacity-100 transition-opacity">
                 <LanguageSwitcher />
@@ -277,19 +289,21 @@ export default function Navbar() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-4 w-56 bg-[#120a05] border border-amber-900/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5"
+                        className="absolute right-0 mt-4 w-56 bg-[#120a05] border border-amber-900/30 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5 z-[150]"
                       >
                         <div className="p-4 border-b border-white/5 bg-gradient-to-r from-amber-500/10 to-transparent">
                           <p className="text-sm font-bold text-white">{user.name}</p>
                           <p className="text-xs text-amber-500">{user.email}</p>
                         </div>
                         <div className="p-2 space-y-1">
-                          <Link to="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
+                          <Link to="/profile" onClick={() => setActiveDropdown(null)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
                             <User size={16} /> {t('navbar.profile')}
                           </Link>
-                          <Link to="/vendor" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
-                            <Settings size={16} /> {t('navbar.vendor')}
-                          </Link>
+                          {(user?.role === 'vendor' || user?.role === 'vendor_op') && (
+                            <Link to="/vendor/dashboard" onClick={() => setActiveDropdown(null)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-amber-400 rounded-lg transition-colors">
+                              <Settings size={16} /> {t('navbar.vendor')}
+                            </Link>
+                          )}
                           <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                             <LogOut size={16} /> {t('navbar.signout')}
                           </button>
@@ -410,7 +424,10 @@ export default function Navbar() {
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="py-2.5 text-center rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm">{t('navbar.profile')}</Link>
-                        <button onClick={handleLogout} className="py-2.5 text-center rounded-lg bg-red-500/10 text-red-400 text-sm">{t('navbar.signout')}</button>
+                        {(user?.role === 'vendor' || user?.role === 'vendor_op') && (
+                          <Link to="/vendor/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="py-2.5 text-center rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-sm">{t('navbar.vendor')}</Link>
+                        )}
+                        <button onClick={handleLogout} className="py-2.5 text-center rounded-lg bg-red-500/10 text-red-400 text-sm col-span-2">{t('navbar.signout')}</button>
                       </div>
                     </div>
                   ) : (

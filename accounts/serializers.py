@@ -65,8 +65,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return user
 
+class ForeignProfileDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import ForeignProfileData
+        model = ForeignProfileData
+        fields = ('entry_date', 'days_remaining', 'has_violations', 'current_registration_place', 'visa_expiry_date', 'updated_at')
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
+    foreign_data = ForeignProfileDataSerializer(read_only=True)
     # Explicitly define photo to accept Image/File, not just Char
     photo = serializers.ImageField(required=False, allow_null=True, write_only=True)
     
@@ -75,7 +83,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'email', 'phone', 'passport', 
             'sex', 'id_citizen', 'dtb', 'pspissuedt', 
-            'avatar_url', 'photo'
+            'avatar_url', 'photo', 'foreign_data'
         )
         read_only_fields = ('id', 'email', 'avatar_url')
 

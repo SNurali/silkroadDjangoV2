@@ -18,3 +18,8 @@ pytz==2025.2
 requests==2.32.5
 sqlparse==0.5.5
 urllib3==2.6.3
+reportlab==4.2.5
+qrcode[pil]==8.0
+Pillow==12.1.0
+django-simple-captcha==0.6.0
+django-allauth==0.57.0

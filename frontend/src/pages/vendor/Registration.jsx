@@ -8,8 +8,9 @@ import toast from 'react-hot-toast';
 
 const steps = [
     { id: 1, title: 'Basic Info', icon: Store },
-    { id: 2, title: 'Location', icon: MapPin },
-    { id: 3, title: 'Photos', icon: ImageIcon },
+    { id: 2, title: 'Legal Data', icon: CheckCircle },
+    { id: 3, title: 'Location', icon: MapPin },
+    { id: 4, title: 'Photos', icon: ImageIcon },
 ];
 
 const VendorRegistration = () => {
@@ -119,8 +120,33 @@ const VendorRegistration = () => {
                             </motion.div>
                         )}
 
-                        {/* Step 2: Location */}
+                        {/* Step 2: Legal Data (Enterprise Phase 8) */}
                         {currentStep === 2 && (
+                            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                                <h2 className="text-xl font-bold mb-4 dark:text-white">Legal Entity Information</h2>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">INN (Tax ID)</label>
+                                        <input {...register('inn', { required: true })} className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="9 digits" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">MFO Bank Code</label>
+                                        <input {...register('mfo', { required: true })} className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="00444" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Checking Account</label>
+                                    <input {...register('checking_account', { required: true })} className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 font-mono" placeholder="20208000..." />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Business Specialization</label>
+                                    <input {...register('business_type')} className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="e.g. Inbound Tourism" />
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Step 3: Location */}
+                        {currentStep === 3 && (
                             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                                 <h2 className="text-xl font-bold mb-4 dark:text-white">Location Details</h2>
                                 <div>
@@ -135,8 +161,8 @@ const VendorRegistration = () => {
                             </motion.div>
                         )}
 
-                        {/* Step 3: Photos */}
-                        {currentStep === 3 && (
+                        {/* Step 4: Photos */}
+                        {currentStep === 4 && (
                             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                                 <h2 className="text-xl font-bold mb-4 dark:text-white">Vendor Photo</h2>
                                 <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center">

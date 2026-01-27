@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function VendorBookings() {
+    const { t } = useTranslation();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('All');
@@ -67,7 +69,7 @@ export default function VendorBookings() {
             return;
         }
 
-        if (action === 'approve' && !window.confirm(`Are you sure you want to approve this request?`)) return;
+        if (action === 'approve' && !window.confirm(t('vendor_bookings.approve_confirm'))) return;
 
         const endpoint = item.type === 'tour'
             ? `/vendors/tickets/${item.real_id}/${action}/`
@@ -88,15 +90,15 @@ export default function VendorBookings() {
             // Close modal if open
             if (rejectionModal.open) setRejectionModal({ open: false, item: null, reason: '' });
 
-            alert(`Request ${action}d successfully`);
+            alert(t('vendor_bookings.success_msg', { action: action }));
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.error || `Failed to ${action} request`);
+            alert(err.response?.data?.error || t('vendor_bookings.error_msg', { action: action }));
         }
     };
 
     const submitRejection = () => {
-        if (!rejectionModal.reason.trim()) return alert('Please enter a reason');
+        if (!rejectionModal.reason.trim()) return alert(t('vendor_bookings.enter_reason'));
         handleAction(rejectionModal.item, 'reject', rejectionModal.reason);
     };
 
@@ -114,31 +116,38 @@ export default function VendorBookings() {
         ? bookings
         : bookings.filter(b => b.booking_status === filterStatus.toLowerCase());
 
+    const filterOptions = [
+        { label: t('vendor_bookings.filter_all'), value: 'All' },
+        { label: t('vendor_bookings.filter_pending'), value: 'Pending' },
+        { label: t('vendor_bookings.filter_confirmed'), value: 'Confirmed' },
+        { label: t('vendor_bookings.filter_cancelled'), value: 'Cancelled' }
+    ];
+
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bookings</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">Track and manage your bookings</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('vendor_bookings.title')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">{t('vendor_bookings.subtitle')}</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search bookings..."
+                            placeholder={t('vendor_bookings.search_placeholder')}
                             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                     </div>
                     {/* Simple Filter Toggle for demo */}
                     <div className="flex gap-2">
-                        {['All', 'Pending', 'Confirmed', 'Cancelled'].map(s => (
+                        {filterOptions.map(opt => (
                             <button
-                                key={s}
-                                onClick={() => setFilterStatus(s)}
-                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === s ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600'}`}
+                                key={opt.value}
+                                onClick={() => setFilterStatus(opt.value)}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === opt.value ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600'}`}
                             >
-                                {s}
+                                {opt.label}
                             </button>
                         ))}
                     </div>
@@ -150,21 +159,21 @@ export default function VendorBookings() {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">ID</th>
-                                <th className="px-6 py-4">Guest</th>
-                                <th className="px-6 py-4">Service</th>
-                                <th className="px-6 py-4">Type</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Amount</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Action</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_id')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_guest')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_service')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_type')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_date')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_amount')}</th>
+                                <th className="px-6 py-4">{t('vendor_bookings.table_status')}</th>
+                                <th className="px-6 py-4 text-right">{t('vendor_bookings.table_action')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
-                                <tr><td colSpan="8" className="text-center py-8">Loading...</td></tr>
+                                <tr><td colSpan="8" className="text-center py-8">{t('vendor_bookings.loading')}</td></tr>
                             ) : filteredBookings.length === 0 ? (
-                                <tr><td colSpan="8" className="text-center py-8 text-slate-500">No bookings found</td></tr>
+                                <tr><td colSpan="8" className="text-center py-8 text-slate-500">{t('vendor_bookings.no_bookings')}</td></tr>
                             ) : (
                                 filteredBookings.map((booking) => (
                                     <tr key={booking.unique_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -178,7 +187,7 @@ export default function VendorBookings() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${booking.type === 'hotel' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
-                                                {booking.type === 'hotel' ? 'Hotel' : 'Tour'}
+                                                {booking.type === 'hotel' ? t('vendor_bookings.type_hotel') : t('vendor_bookings.type_tour')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
@@ -224,15 +233,15 @@ export default function VendorBookings() {
             {rejectionModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Reject Booking</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('vendor_bookings.reject_title')}</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
-                            Please provide a reason for rejecting this booking request. This will be sent to the customer.
+                            {t('vendor_bookings.reject_desc')}
                         </p>
 
                         <textarea
                             value={rejectionModal.reason}
                             onChange={(e) => setRejectionModal(prev => ({ ...prev, reason: e.target.value }))}
-                            placeholder="Reason for rejection (e.g. No rooms available, Date unavailable...)"
+                            placeholder={t('vendor_bookings.reject_reason_placeholder')}
                             className="w-full h-32 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none mb-4"
                             autoFocus
                         />
@@ -242,13 +251,13 @@ export default function VendorBookings() {
                                 onClick={() => setRejectionModal({ open: false, item: null, reason: '' })}
                                 className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
                             >
-                                Cancel
+                                {t('vendor_bookings.cancel')}
                             </button>
                             <button
                                 onClick={submitRejection}
                                 className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
                             >
-                                Reject Booking
+                                {t('vendor_bookings.reject_btn')}
                             </button>
                         </div>
                     </div>

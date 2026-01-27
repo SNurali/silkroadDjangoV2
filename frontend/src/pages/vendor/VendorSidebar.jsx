@@ -1,18 +1,21 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Building, Map, CalendarCheck, Settings, LogOut } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 
 export default function VendorSidebar() {
     const { t } = useTranslation();
+    const { user, hasRole } = useAuth();
 
-    const navItems = [
-        { path: '/vendor/dashboard', icon: LayoutDashboard, label: t('vendor_sidebar.dashboard') },
-        { path: '/vendor/hotels', icon: Building, label: t('vendor_sidebar.my_hotels') },
-        { path: '/vendor/tours', icon: Map, label: t('vendor_sidebar.my_tours') },
-        { path: '/vendor/bookings', icon: CalendarCheck, label: t('vendor_sidebar.bookings') },
-        { path: '/vendor/settings', icon: Settings, label: t('vendor_sidebar.settings') },
+    const allNavItems = [
+        { path: '/vendor/dashboard', icon: LayoutDashboard, label: t('vendor_sidebar.dashboard'), roles: ['admin', 'vendor', 'vendor_op', 'hotel_admin'] },
+        { path: '/vendor/hotels', icon: Building, label: t('vendor_sidebar.my_hotels'), roles: ['admin', 'vendor', 'hotel_admin'] },
+        { path: '/vendor/tours', icon: Map, label: t('vendor_sidebar.my_tours'), roles: ['admin', 'vendor', 'vendor_op'] },
+        { path: '/vendor/bookings', icon: CalendarCheck, label: t('vendor_sidebar.bookings'), roles: ['admin', 'vendor', 'vendor_op', 'hotel_admin'] },
+        { path: '/vendor/settings', icon: Settings, label: t('vendor_sidebar.settings'), roles: ['admin', 'vendor'] },
     ];
+
+    const navItems = allNavItems.filter(item => !item.roles || hasRole(item.roles));
 
     return (
         <div className="w-64 bg-[#0f172a] min-h-screen text-white flex flex-col border-r border-[#1e293b] pt-24">

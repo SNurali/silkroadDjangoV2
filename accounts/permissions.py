@@ -10,19 +10,43 @@ class IsAdmin(BasePermission):
         )
 
 
-class IsAgent(BasePermission):
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "agent"
-        )
-
-
 class IsVendor(BasePermission):
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
             and request.user.role == "vendor"
+        )
+
+
+class IsVendorOp(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "vendor_op"
+        )
+
+
+class IsHotelAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "hotel_admin"
+        )
+
+
+class IsModerator(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "moderator"
+        )
+
+
+class IsContentOp(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "content_op"
         )
 
 
@@ -34,19 +58,25 @@ class IsUser(BasePermission):
         )
 
 
-class IsAdminOrAgent(BasePermission):
+class IsAdminOrStaff(BasePermission):
+    """
+    Check if user is Super Admin or any Internal Staff (Moderator, ContentOp).
+    """
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
-            and request.user.role in ("admin", "agent")
+            and request.user.role in ("admin", "moderator", "content_op")
         )
 
 
-class IsAdminOrVendor(BasePermission):
+class IsBusinessAdmin(BasePermission):
+    """
+    Check if user is Vendor or Vendor Operator.
+    """
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
-            and request.user.role in ("admin", "vendor")
+            and request.user.role in ("vendor", "vendor_op")
         )
 
 class IsOwner(BasePermission):

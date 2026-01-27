@@ -52,12 +52,9 @@ export default function TourDetail() {
                 guests: guests
             });
 
-            alert(t('booking.success') || "Booking created successfully!");
+                        alert(t('booking.success') || "Booking created successfully!");
             if (response.data.ticket_id) {
                 // navigate(`/orders/${response.data.ticket_id}`); // If we had an order page
-                navigate('/profile');
-            } else {
-                navigate('/profile');
             }
             navigate('/profile');
         } catch (err) {

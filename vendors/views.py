@@ -1,10 +1,14 @@
 from rest_framework import viewsets, permissions, status, views
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import get_user_model
 
 from .models import Vendor
 from .serializers import VendorDashboardSerializer, VendorHotelSerializer, VendorSightSerializer
 from hotels.models import Hotel, Sight, Ticket, Booking
+
+User = get_user_model()
 
 class IsVendorUser(permissions.BasePermission):
     """
@@ -414,3 +418,52 @@ class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         return Response({'status': 'cancelled'})
+
+class VendorSwitchView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        
+        # Check if user has a vendor profile
+        if not hasattr(user, 'vendor_profile'):
+            return Response(
+                {'error': 'User does not have a vendor profile'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the vendor profile
+        vendor = user.vendor_profile
+        
+        # Generate new JWT tokens with vendor role
+        refresh = RefreshToken.for_user(user)
+        refresh['role'] = 'vendor'  # or 'vendor_op', 'hotel_admin'
+        refresh['vendor_id'] = vendor.id
+        refresh['vendor_name'] = vendor.name
+        
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'vendor_id': vendor.id,
+            'vendor_name': vendor.name,
+            'vendor_role': vendor.vendor_type if hasattr(vendor, 'vendor_type') else 'vendor'
+        })
+
+class UserSwitchView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        
+        # Generate new JWT tokens with user role
+        refresh = RefreshToken.for_user(user)
+        refresh['role'] = 'user'
+        refresh['vendor_id'] = None
+        refresh['vendor_name'] = None
+        
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'vendor_id': None,
+            'vendor_name': None
+        })

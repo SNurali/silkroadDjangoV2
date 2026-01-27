@@ -32,6 +32,10 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        if (error.response?.status === 503) {
+            window.location.href = '/maintenance';
+            return new Promise(() => { });
+        }
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             localStorage.removeItem('accessToken');
@@ -231,6 +235,7 @@ export const changePassword = async (data) => {
 // Notifications
 export const getNotifications = async () => {
     const response = await api.get('/notifications/');
+    if (response.data.results) return response.data.results;
     return response.data;
 };
 
@@ -241,6 +246,20 @@ export const markNotificationRead = async (id) => {
 
 export const markAllNotificationsRead = async () => {
     const response = await api.post('/notifications/mark_all_as_read/');
+    return response.data;
+};
+
+// Chatbot
+export const getConversations = async () => {
+    const response = await api.get('/chat/conversations/');
+    return response.data;
+};
+
+export const sendChatMessage = async (data) => {
+    // data: { text, conversation_id? } or FormData
+    const isFormData = data instanceof FormData;
+    const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const response = await api.post('/chat/send/', data, config);
     return response.data;
 };
 

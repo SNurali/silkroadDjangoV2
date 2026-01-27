@@ -1,7 +1,9 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.models import User
-from .models import Sight, Category, SightFacility, Ticket, Hotel, Room, RoomType, RoomPrice, Booking, TicketDetail
+from .models import Sight, Category, SightFacility, Ticket, Hotel, Room, RoomType, RoomPrice, Booking, TicketDetail, HotelComment
+from captcha.fields import CaptchaField
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -184,6 +186,7 @@ class GuestSerializer(serializers.Serializer):
 
 class TicketCreateSerializer(serializers.Serializer):
     sight_id = serializers.IntegerField()
+    tour_date = serializers.DateField(required=False, default=timezone.now().date)
     guests = GuestSerializer(many=True)
 
     def validate_sight_id(self, value):
@@ -201,3 +204,66 @@ class TicketDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketDetail # Make sure TicketDetail is imported
         fields = '__all__'
+
+
+class HotelCommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Hotel Comments/Reviews with CAPTCHA validation.
+    """
+    user_name = serializers.CharField(source='user.name', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    captcha = serializers.CharField(write_only=True, required=True)
+    
+    class Meta:
+        model = HotelComment
+        fields = (
+            'id',
+            'hotel',
+            'user',
+            'user_name',
+            'user_email',
+            'rating',
+            'comment',
+            'status',
+            'created_at',
+            'updated_at',
+            'captcha',
+        )
+        read_only_fields = ('id', 'user', 'user_name', 'user_email', 'status', 'created_at', 'updated_at')
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate_comment(self, value):
+        if len(value) < 10:
+            raise serializers.ValidationError("Comment must be at least 10 characters long.")
+        if len(value) > 1000:
+            raise serializers.ValidationError("Comment cannot exceed 1000 characters.")
+        return value
+    
+    def validate_captcha(self, value):
+        """Validate CAPTCHA field format: key:code"""
+        if ':' not in value:
+            raise serializers.ValidationError("Invalid CAPTCHA format. Expected 'key:code'")
+        
+        captcha_key, captcha_code = value.split(':', 1)
+        
+        # Use django-simple-captcha's built-in validation
+        from captcha.models import CaptchaStore
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        try:
+            # Check if captcha exists and is valid
+            captcha = CaptchaStore.objects.get(
+                hashkey=captcha_key,
+                response=captcha_code,
+                expiration__gt=timezone.now()
+            )
+            # Delete after successful validation (one-time use)
+            captcha.delete()
+            return value
+        except CaptchaStore.DoesNotExist:
+            raise serializers.ValidationError("Invalid or expired CAPTCHA code")

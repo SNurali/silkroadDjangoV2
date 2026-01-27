@@ -220,12 +220,19 @@ class VendorSettingsSerializer(serializers.ModelSerializer):
     bill_data = serializers.JSONField(required=False)
     attributes = serializers.JSONField(required=False)
     
+    # Enterprise Legal Fields
+    inn = serializers.CharField(required=False, allow_blank=True)
+    mfo = serializers.CharField(required=False, allow_blank=True)
+    checking_account = serializers.CharField(required=False, allow_blank=True)
+    business_type = serializers.CharField(required=False, allow_blank=True)
+    
     class Meta:
         model = Vendor
         fields = [
             'id', 'company_name', 'phone', 'email', 'full_name',
             'passport', 'dtb', 'sex', 'id_citizen',
-            'bill_data', 'attributes'
+            'bill_data', 'attributes',
+            'inn', 'mfo', 'checking_account', 'business_type'
         ]
         read_only_fields = ['email']
 

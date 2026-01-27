@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, MapPin, Map as MapIcon } from 'lucide-react';
 import api from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function VendorTourList() {
+    const { t } = useTranslation();
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -25,13 +27,13 @@ export default function VendorTourList() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this tour?")) return;
+        if (!window.confirm(t('vendor_tours.delete_confirm'))) return;
         try {
             await api.delete(`/vendors/tours/${id}/`);
             setTours(prev => prev.filter(t => t.id !== id));
         } catch (err) {
             console.error("Failed to delete", err);
-            alert("Failed to delete tour.");
+            alert(t('vendor_tours.delete_error'));
         }
     };
 
@@ -39,28 +41,28 @@ export default function VendorTourList() {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Tours</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">Manage your tour packages</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('vendor_tours.title')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">{t('vendor_tours.subtitle')}</p>
                 </div>
                 {tours.length > 0 && (
                     <button onClick={() => navigate('/vendor/tours/create')} className="flex items-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-indigo-500/30">
                         <Plus size={18} />
-                        <span>Add Tour</span>
+                        <span>{t('vendor_tours.add_tour')}</span>
                     </button>
                 )}
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading tours...</div>
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400">{t('vendor_tours.loading')}</div>
             ) : tours.length === 0 ? (
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 h-[60vh] flex flex-col items-center justify-center text-center p-8">
                     <div className="w-16 h-16 bg-purple-50 text-[#6366f1] rounded-full flex items-center justify-center mb-6">
                         <MapIcon size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Tours Yet</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">Create your first tour package to start selling tickets.</p>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('vendor_tours.no_tours_title')}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">{t('vendor_tours.no_tours_desc')}</p>
                     <button onClick={() => navigate('/vendor/tours/create')} className="text-[#6366f1] font-bold hover:text-[#4f46e5] transition-colors">
-                        Create Tour
+                        {t('vendor_tours.create_tour')}
                     </button>
                 </div>
             ) : (
@@ -122,7 +124,7 @@ export default function VendorTourList() {
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
                                     <div className="text-sm font-bold text-slate-900 dark:text-white">
                                         {parseInt(tour.is_foreg || 0).toLocaleString()} UZS
-                                        <span className="text-xs font-normal text-slate-400"> / person</span>
+                                        <span className="text-xs font-normal text-slate-400"> {t('tours.per_person')}</span>
                                     </div>
                                     <div className="flex gap-1">
                                         <button

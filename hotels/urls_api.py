@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from . import views_api, views_payment
+from . import views_api, views_payment, views_pdf
 
 router = DefaultRouter()
 router.register(r'bookings', views.BookingViewSet, basename='booking')
@@ -11,6 +11,18 @@ urlpatterns = [
     # Hotels (Root of api/hotels/)
     path('', views.HotelListAPIView.as_view(), name='api_hotel_list'),
     path('<int:pk>/', views.HotelDetailAPIView.as_view(), name='api_hotel_detail'),
+    path('<int:hotel_id>/search-rooms/', views.HotelRoomSearchAPIView.as_view(), name='api_hotel_search_rooms'),
+    
+    # Hotel Comments & Reviews
+    path('<int:hotel_id>/comments/', views_api.HotelCommentListCreateView.as_view(), name='api_hotel_comments'),
+    path('<int:hotel_id>/comments/stats/', views_api.HotelCommentStatsView.as_view(), name='api_hotel_comments_stats'),
+    
+    # Sight Comments
+    path('sights/<int:sight_id>/comments/', views_api.HotelCommentListCreateView.as_view(), name='api_sight_comments'),
+    path('sights/<int:sight_id>/comments/stats/', views_api.HotelCommentStatsView.as_view(), name='api_sight_comments_stats'),
+    
+    # CAPTCHA
+    path('captcha/generate/', views_api.GenerateCaptchaView.as_view(), name='api_captcha_generate'),
 
     # Sights
     path('sights/', views.SightListAPIView.as_view(), name='api_sight_list'),
@@ -20,6 +32,7 @@ urlpatterns = [
     path('tickets/', views.TicketListAPIView.as_view(), name='api_ticket_list'),
     path('tickets/buy/', views.TicketCreateAPIView.as_view(), name='api_ticket_buy'),
     path('tickets/pay/', views.PayTicketAPIView.as_view(), name='api_ticket_pay_legacy'),
+    path('tickets/<int:pk>/download/', views_pdf.TicketPDFDownloadView.as_view(), name='api_ticket_download'),
 
     # Legacy mappings (preserved)
     path('categories/', views_api.CategoryListAPIView.as_view(), name='api_category_list'),
@@ -32,4 +45,8 @@ urlpatterns = [
     
     # ViewSets
     path('', include(router.urls)),
+    
+    # PDF Downloads (Bookings)
+    path('bookings/<int:pk>/download/', views_pdf.BookingPDFDownloadView.as_view(), name='api_booking_download'),
+    path('bookings/<int:pk>/preview/', views_pdf.BookingPDFPreviewView.as_view(), name='api_booking_preview'),
 ]

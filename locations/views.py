@@ -30,7 +30,41 @@ def search_locations(request):
     query = request.GET.get('q', '').strip()
     lang = request.GET.get('lang', 'en')
     
-    if not query or len(query) < 2:
+    # If query is empty, return top regions/districts as default suggestions
+    if not query:
+        # Get all active regions
+        regions = Region.objects.filter(is_active=True).order_by('name')[:10]
+        results = []
+        
+        def get_name(obj, lang_code):
+            if lang_code == 'ru': return obj.name_ru or obj.name
+            elif lang_code == 'uz': return obj.name_uz or obj.name
+            return obj.name
+
+        for r in regions:
+            display_name = get_name(r, lang)
+            type_name = 'Region'
+            if lang == 'ru': type_name = 'Регион'
+            if lang == 'uz': type_name = 'Viloyat'
+            results.append({
+                'id': r.id, 'name': r.name, 'type': type_name, 'display_name': display_name
+            })
+            
+        # Also add some popular districts (cities)
+        districts = District.objects.filter(is_active=True).order_by('name')[:10]
+        for d in districts:
+            display_name = get_name(d, lang)
+            region_name = get_name(d.region, lang) if d.region else ""
+            full_display = f"{display_name}, {region_name}" if region_name else display_name
+            type_name = 'City'
+            if lang == 'ru': type_name = 'Город'
+            if lang == 'uz': type_name = 'Shahar'
+            results.append({
+                'id': d.id, 'name': d.name, 'type': type_name, 'display_name': full_display
+            })
+        return Response(results)
+
+    if len(query) < 2:
         return Response([])
 
     results = []

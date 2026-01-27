@@ -70,6 +70,25 @@ class Vendor(models.Model):
     attributes = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('атрибуты'))
     bill_data = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('платёжные данные'))
 
+    # Enterprise fields
+    business_type = models.CharField(max_length=100, blank=True, null=True, verbose_name=_('Вид деятельности'))
+    inn = models.CharField(max_length=20, blank=True, null=True, verbose_name=_('ИНН'))
+    company_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Название компании'))
+    checking_account = models.CharField(max_length=50, blank=True, null=True, verbose_name=_('Расчётный счёт'))
+    mfo = models.CharField(max_length=20, blank=True, null=True, verbose_name=_('МФО'))
+    contacts = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('Контакты'))
+    
+    # Role separation: VENDOR (owner) vs VENDOR_OPERATOR (employee)
+    operator_role = models.CharField(
+        max_length=20,
+        choices=[
+            ('vendor', 'Vendor Owner'),
+            ('vendor_op', 'Vendor Operator')
+        ],
+        default='vendor',
+        verbose_name=_('Роль оператора')
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('создано'))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_('обновлено'))
 
@@ -81,6 +100,70 @@ class Vendor(models.Model):
 
     def __str__(self) -> str:
         return self.name or f"Vendor #{self.id}"
+
+
+class VendorService(models.Model):
+    """
+    Услуга вендора (экскурсия, трансфер и т.д.).
+    """
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='services', verbose_name=_('Вендор'))
+    type = models.CharField(max_length=100, verbose_name=_('Тип услуги'))
+    description = models.TextField(verbose_name=_('Описание'))
+    photos = models.JSONField(default=list, blank=True, null=True, verbose_name=_('Фотографий'))
+    schedule = models.JSONField(default=dict, blank=True, null=True, verbose_name=_('График работы'))
+    has_tickets = models.BooleanField(default=False, verbose_name=_('Продажа билетов'))
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tb_vendor_services'
+        verbose_name = _('Услуга вендора')
+        verbose_name_plural = _('Услуги вендоров')
+
+    def __str__(self):
+        return f"{self.type} - {self.vendor.name}"
+
+
+class ServiceTicket(models.Model):
+    """
+    Логика билетов для услуги.
+    """
+    service = models.ForeignKey(VendorService, on_delete=models.CASCADE, related_name='ticket_types', verbose_name=_('Услуга'))
+    
+    weekday_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_('Цена в будни'))
+    weekend_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_('Цена в выходные'))
+    resident_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_('Цена для резидентов'))
+    non_resident_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_('Цена для нерезидентов'))
+    
+    max_tickets = models.IntegerField(null=True, blank=True, verbose_name=_('Макс. билетов (null=безлимит)'))
+    validity_period = models.DurationField(verbose_name=_('Срок действия билета'))
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tb_service_tickets'
+        verbose_name = _('Тип билета')
+        verbose_name_plural = _('Типы билетов')
+
+
+class TicketSale(models.Model):
+    """
+    Продажа билета.
+    """
+    ticket_type = models.ForeignKey(ServiceTicket, on_delete=models.PROTECT, related_name='sales', verbose_name=_('Тип билета'))
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ticket_purchases', verbose_name=_('Покупатель'))
+    purchase_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default='NEW', choices=[('NEW', 'New'), ('PAID', 'Paid'), ('USED', 'Used'), ('CANCELLED', 'Cancelled')])
+    price_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.ForeignKey('config_module.CurrencyRate', on_delete=models.PROTECT)
+    
+    qr_code = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        db_table = 'tb_ticket_sales'
+        verbose_name = _('Продажа билета')
+        verbose_name_plural = _('Продажи билетов')
 
     def get_geo_tuple(self):
         if not self.geo:

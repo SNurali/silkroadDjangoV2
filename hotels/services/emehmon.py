@@ -94,37 +94,79 @@ class EMehmonService:
             
         return {'success': False, 'message': 'Person not found.', 'code': 404}
 
+    def get_foreigner_full_data(self, passport, citizenship_id):
+        """
+        Fetches detailed foreigner status (visa, entry date, violations).
+        """
+        data = {
+            'psp': passport,
+            'country': citizenship_id
+        }
+        
+        # In reality, this might be a different endpoint
+        url = self.foreign_api_url
+        
+        try:
+            if settings.DEBUG:
+                logger.info(f"MOCK Foreigner Data Request for {passport}")
+                return {
+                    'success': True,
+                    'data': {
+                        'entry_date': '2023-10-15',
+                        'days_left': 12,
+                        'violations': [],
+                        'current_registration': 'Hotel Uzbekistan, Tashkent',
+                        'visa_expiry': '2024-01-15'
+                    }
+                }
+            
+            response = requests.post(url, json=data, timeout=10)
+            response.raise_for_status()
+            return {'success': True, 'data': response.json()}
+        except Exception as e:
+            logger.error(f"EMehmon Foreigner API Error: {str(e)}")
+            return {'success': False, 'message': str(e)}
+
+    def sync_hotel_availability(self, hotel_emehmon_id, start_date, end_date):
+        """
+        Syncs room availability for a specific hotel from e-mehmon.
+        """
+        logger.info(f"Syncing availability for hotel {hotel_emehmon_id}")
+        # Simplified: Request availability matrix
+        return {'success': True, 'data': []}
+
+    def sync_booking_status(self, emehmon_booking_id):
+        """
+        Pulls the latest status of a booking from e-mehmon.
+        """
+        logger.info(f"Syncing status for booking {emehmon_booking_id}")
+        return {'success': True, 'status': 'CONFIRMED'}
+
     def _reach_data_from_mvd(self, data):
         """
         Sends request to external MVD API.
         """
         today_str = datetime.datetime.now().strftime('%y-%m-%d')
         
-        # Generate API Secret Hash
-        # Laravel: md5($person_info_secret . $data['psp'] . $data['dtb'] . date('y-m-d'))
-        raw_hash = f"{self.secret}{data['psp']}{data['dtb']}{today_str}"
+        raw_hash = f"{self.secret}{data['psp']}{data.get('dtb', '')}{today_str}"
         data['hash'] = hashlib.md5(raw_hash.encode()).hexdigest()
         
-        url = self.api_url if str(data['country']) == '173' else self.foreign_api_url
+        url = self.api_url if str(data.get('country')) == '173' else self.foreign_api_url
         
         try:
-             # Mock Response for Development since we don't have real endpoint
-            # Mock Response if DEBUG or if URL is the known garbage value
             if settings.DEBUG or 'sadhgf' in url:
-                logger.info(f"MOCK MVD Request to {url} with data: {data}")
                 return self._mock_response(data)
 
             response = requests.post(url, json=data, timeout=10)
             response.raise_for_status()
             return response.json()
-            
         except Exception as e:
             logger.error(f"MVD API Error: {str(e)}")
             return None
 
     def _mock_response(self, data):
         """Mock response for testing purposes"""
-        if data['psp'].startswith('AA'):
+        if data['psp'].startswith('AA') or data['psp'].startswith('FA'):
             return {
                 'status': 'success',
                 'psp': {

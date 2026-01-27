@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security
 # ───────────────────────────────────────────────
 
-SECRET_KEY = 'fixed-secret-key-for-debugging-12345'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fixed-key-12345')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
@@ -46,6 +46,17 @@ INSTALLED_APPS = [
     'notifications',
     'cabs',
     'blog',
+    'support_chatbot',
+    'bookings',
+    'config_module',
+    'admin_panel',
+    
+    # Third-party
+    'captcha',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 
     'silkroad_backend.apps.SilkroadBackendConfig',
 ]
@@ -64,7 +75,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # django-allauth
     'django.contrib.messages.middleware.MessageMiddleware',
+    'config_module.middleware.MaintenanceMiddleware',
 ]
 
 # ───────────────────────────────────────────────
@@ -263,4 +276,70 @@ CLICKHOUSE_PORT = os.getenv('CLICKHOUSE_PORT')
 CLICKHOUSE_DATABASE = os.getenv('CLICKHOUSE_DATABASE')
 CLICKHOUSE_USERNAME = os.getenv('CLICKHOUSE_USERNAME')
 CLICKHOUSE_PASSWORD = os.getenv('CLICKHOUSE_PASSWORD')
+
+# AI Chatbot
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+
+# Open WebUI Integration
+OPEN_WEBUI_URL = os.getenv('OPEN_WEBUI_URL', 'http://localhost:3000')
+OPEN_WEBUI_API_KEY = os.getenv('OPEN_WEBUI_API_KEY')
+OPEN_WEBUI_MODEL = os.getenv('OPEN_WEBUI_MODEL', 'gpt-4o')
+
+# ───────────────────────────────────────────────
+# CAPTCHA Settings
+# ───────────────────────────────────────────────
+
+CAPTCHA_IMAGE_SIZE = (120, 50)
+CAPTCHA_FONT_SIZE = 32
+CAPTCHA_BACKGROUND_COLOR = '#f8f9fa'
+CAPTCHA_FOREGROUND_COLOR = '#1e40af'
+CAPTCHA_CHALLENGE_FUNCT = 'captcha.helpers.math_challenge'
+CAPTCHA_NOISE_FUNCTIONS = ('captcha.helpers.noise_dots',)
+CAPTCHA_LENGTH = 4
+CAPTCHA_TIMEOUT = 5  # Minutes
+
+# ───────────────────────────────────────────────
+# Django AllAuth - Social Authentication
+# ───────────────────────────────────────────────
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
+SITE_ID = 1
+
+# AllAuth Configuration
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # 'mandatory' | 'optional' | 'none'
+ACCOUNT_UNIQUE_EMAIL = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# After login redirect
+LOGIN_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+
+# Social Providers
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': os.getenv('WEB_GOOGLE_CLIENT_ID', ''),
+            'secret': os.getenv('WEB_GOOGLE_CLIENT_SECRET', ''),
+            'key': ''
+        }
+    }
+}
 

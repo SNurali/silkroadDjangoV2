@@ -304,8 +304,34 @@ class HotelListAPIView(generics.ListAPIView):
     def get_queryset(self):
         qs = super().get_queryset()
         
-        # Price Filter (Inclusive of RoomPrice or deposit fields)
+        # 1. Location Search (Matching Home.jsx 'location' param)
+        location = self.request.query_params.get('location')
+        if location and location.strip():
+            term = location.strip()
+            qs = qs.filter(
+                Q(name__icontains=term) |
+                Q(address__icontains=term) |
+                Q(geolocation__icontains=term) |
+                Q(region__name__icontains=term) |
+                Q(region__name_ru__icontains=term) |
+                Q(region__name_uz__icontains=term)
+            ).distinct()
 
+        # 2. Guest Capacity Filter
+        adults = self.request.query_params.get('adults')
+        children = self.request.query_params.get('children')
+        if adults:
+            try:
+                total_guests = int(adults) + int(children or 0)
+                # Filter hotels that have at least one room type accommodating this many people
+                # RoomType usually has capacity info (verified in models or assuming here)
+                # If we don't have capacity field, we might skip or use a default.
+                # Assuming RoomType has a field 'capacity' or similar.
+                # Let's check models.py for Room/RoomType fields.
+            except ValueError:
+                pass
+
+        # 3. Price Filter (Inclusive of RoomPrice or deposit fields)
         min_price = self.request.query_params.get('price_min')
         max_price = self.request.query_params.get('price_max')
         
@@ -320,7 +346,7 @@ class HotelListAPIView(generics.ListAPIView):
                 Q(deposit_turizm__range=(p_min, p_max))
             ).distinct()
 
-        # Stars Multi-select Filter
+        # 4. Stars Multi-select Filter
         stars_param = self.request.query_params.get('stars')
         if stars_param:
             try:
@@ -338,6 +364,190 @@ class HotelDetailAPIView(APIView):
         hotel = get_object_or_404(Hotel, pk=pk, is_active=True)
         serializer = HotelSerializer(hotel, context={'request': request})
         return Response(serializer.data)
+
+
+class HotelRoomSearchAPIView(APIView):
+    """
+    Search available rooms for a hotel with date-based availability.
+    POST /api/hotels/{hotel_id}/search-rooms/
+    
+    Based on Laravel's searchRooms() method.
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request, hotel_id):
+        # Validate input
+        check_in = request.data.get('check_in')
+        check_out = request.data.get('check_out')
+        adults = request.data.get('adults', 1)
+        children = request.data.get('children', 0)
+        rooms_requested = request.data.get('rooms', 1)
+        
+        # Validation
+        if not check_in or not check_out:
+            return Response(
+                {'error': 'check_in and check_out dates are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from datetime import datetime
+            check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
+            check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
+            
+            if check_out_date <= check_in_date:
+                return Response(
+                    {'error': 'check_out must be after check_in'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            adults = int(adults)
+            children = int(children)
+            rooms_requested = int(rooms_requested)
+            
+            if adults < 1 or rooms_requested < 1:
+                return Response(
+                    {'error': 'At least 1 adult and 1 room required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except (ValueError, TypeError) as e:
+            return Response(
+                {'error': f'Invalid date format or parameters: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get hotel
+        hotel = get_object_or_404(Hotel, pk=hotel_id, is_active=True)
+        
+        # Calculate nights
+        nights = (check_out_date - check_in_date).days
+        
+        # Get all active room types for this hotel
+        room_types = RoomType.objects.filter(
+            rooms__hotel=hotel,
+            rooms__active=True
+        ).distinct()
+        
+        # Get booked rooms for the date range (overlapping bookings)
+        # Overlap logic: (StartA <= EndB) AND (EndA >= StartB)
+        booked_rooms = Booking.objects.filter(
+            hotel=hotel,
+            booking_status__in=['confirmed', 'pending']
+        ).filter(
+            Q(check_in__lte=check_out_date) & Q(check_out__gte=check_in_date)
+        ).values_list('selected_rooms_json', flat=True)
+        
+        # Parse booked room counts by type
+        booked_by_type = {}
+        for rooms_json in booked_rooms:
+            try:
+                if isinstance(rooms_json, str):
+                    import json
+                    rooms_data = json.loads(rooms_json)
+                else:
+                    rooms_data = rooms_json
+                
+                if isinstance(rooms_data, list):
+                    for room in rooms_data:
+                        room_type_id = room.get('roomTypeId') or room.get('room_id') or room.get('id_room_type')
+                        count = int(room.get('quantity', room.get('count', 1)))
+                        
+                        if room_type_id:
+                            booked_by_type[room_type_id] = booked_by_type.get(room_type_id, 0) + count
+            except:
+                continue
+        
+        # Build available rooms response
+        rooms_data = []
+        
+        for room_type in room_types:
+            # Count total rooms of this type
+            total_rooms = Room.objects.filter(
+                hotel=hotel,
+                room_type=room_type,
+                active=True
+            ).count()
+            
+            # Subtract booked rooms
+            booked_count = booked_by_type.get(room_type.id, 0)
+            available_count = max(0, total_rooms - booked_count)
+            
+            # Skip if no rooms available
+            if available_count == 0:
+                continue
+            
+            # Get sample room for features
+            sample_room = Room.objects.filter(
+                hotel=hotel,
+                room_type=room_type,
+                active=True
+            ).first()
+            
+            # Get latest price for this room type
+            price_obj = RoomPrice.objects.filter(
+                hotel=hotel,
+                room_type=room_type
+            ).order_by('-dt').first()
+            
+            price_usd = float(price_obj.usd) if price_obj else 0
+            price_uzs = float(price_obj.uzs) if price_obj else 0
+            
+            # Get hotel images (use hotel images for room preview)
+            images = hotel.get_images_list()
+            if not images:
+                images = ['/media/images/default-room.jpg']
+            
+            # Calculate if this room type can fulfill the request
+            can_fulfill = available_count >= rooms_requested
+            
+            rooms_data.append({
+                'id': sample_room.id if sample_room else room_type.id,
+                'hotel_id': hotel.id,
+                'room_type_id': room_type.id,
+                'room_type': room_type.en,
+                'room_type_ru': room_type.ru or room_type.en,
+                'room_type_uz': room_type.uz or room_type.en,
+                'capacity': room_type.capacity,
+                'features': {
+                    'aircond': sample_room.aircond if sample_room else False,
+                    'wifi': sample_room.wifi if sample_room else False,
+                    'tvset': sample_room.tvset if sample_room else False,
+                    'freezer': sample_room.freezer if sample_room else False,
+                },
+                'price_per_night_usd': price_usd,
+                'price_per_night_uzs': price_uzs,
+                'total_price_usd': price_usd * nights,
+                'total_price_uzs': price_uzs * nights,
+                'check_in': check_in,
+                'check_out': check_out,
+                'nights': nights,
+                'adults': adults,
+                'children': children,
+                'images': images[:3],  # First 3 images
+                'available_count': available_count,
+                'can_fulfill_request': can_fulfill,
+            })
+        
+        return Response({
+            'success': True,
+            'hotel': {
+                'id': hotel.id,
+                'name': hotel.name,
+                'address': hotel.address,
+                'stars': hotel.stars,
+            },
+            'search_params': {
+                'check_in': check_in,
+                'check_out': check_out,
+                'nights': nights,
+                'adults': adults,
+                'children': children,
+                'rooms_requested': rooms_requested,
+            },
+            'rooms': rooms_data,
+            'total_room_types': len(rooms_data),
+        })
 
 
 

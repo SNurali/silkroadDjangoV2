@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Building as BuildingIcon } from 'lucide-react';
 import api from '../../services/api';
-
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 export default function VendorHotelList() {
+    const { t } = useTranslation();
     const [hotels, setHotels] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -24,13 +25,13 @@ export default function VendorHotelList() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this hotel?")) return;
+        if (!window.confirm(t('vendor_hotels.delete_confirm'))) return;
         try {
             await api.delete(`/vendors/hotels/${id}/`);
             setHotels(prev => prev.filter(h => h.id !== id));
         } catch (err) {
             console.error("Failed to delete", err);
-            alert("Failed to delete hotel.");
+            alert(t('vendor_hotels.delete_error'));
         }
     };
 
@@ -38,28 +39,28 @@ export default function VendorHotelList() {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Hotels</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">Manage your hotel listings</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('vendor_hotels.title')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">{t('vendor_hotels.subtitle')}</p>
                 </div>
                 {hotels.length > 0 && (
                     <Link to="/vendor/hotels/create" className="flex items-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-indigo-500/30">
                         <Plus size={18} />
-                        <span>Add Hotel</span>
+                        <span>{t('vendor_hotels.add_hotel')}</span>
                     </Link>
                 )}
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading hotels...</div>
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400">{t('vendor_hotels.loading')}</div>
             ) : hotels.length === 0 ? (
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 h-[60vh] flex flex-col items-center justify-center text-center p-8">
                     <div className="w-16 h-16 bg-purple-50 text-[#6366f1] rounded-full flex items-center justify-center mb-6">
                         <BuildingIcon size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Hotels Yet</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">Create your first hotel to start receiving bookings.</p>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('vendor_hotels.no_hotels_title')}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">{t('vendor_hotels.no_hotels_desc')}</p>
                     <Link to="/vendor/hotels/create" className="text-[#6366f1] font-bold hover:text-[#4f46e5] transition-colors">
-                        Create Hotel
+                        {t('vendor_hotels.create_hotel')}
                     </Link>
                 </div>
             ) : (
@@ -82,7 +83,7 @@ export default function VendorHotelList() {
                                     <BuildingIcon size={48} className="opacity-20" />
                                 </div>
                                 <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold shadow-sm z-10">
-                                    {hotel.stars} Stars
+                                    {hotel.stars} {t('vendor_hotel_create.stars')}
                                 </div>
                             </div>
                             <div className="p-4">
@@ -94,7 +95,7 @@ export default function VendorHotelList() {
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
                                     <div className="text-sm font-bold text-slate-900 dark:text-white">
                                         {parseInt(hotel.deposit).toLocaleString()} UZS
-                                        <span className="text-xs font-normal text-slate-400"> / night</span>
+                                        <span className="text-xs font-normal text-slate-400"> {t('hotel_detail.per_night')}</span>
                                     </div>
                                     <div className="flex gap-1">
                                         <Link to={`/vendor/hotels/edit/${hotel.id}`} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">

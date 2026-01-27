@@ -40,7 +40,9 @@ export default function VendorTourCreate() {
         extra_services: {}, // { "Service Name": true }
         description: '',
         is_local: '',
+        is_weekend_local: '',
         is_foreg: '',
+        is_weekend_foreg: '',
         max_capacity: '',
         enable_tickets: '1',
 
@@ -361,7 +363,7 @@ export default function VendorTourCreate() {
                                     }
                                 }}
                                 className="form-input flex-1 rounded-lg border-slate-200"
-                                placeholder={t('vendor_create.add_service_placeholder', 'Type and press Enter to add service...')}
+                                placeholder={t('vendor_create.add_service_placeholder')}
                             />
                             <button
                                 type="button"
@@ -380,7 +382,7 @@ export default function VendorTourCreate() {
 
                         {/* Suggestions */}
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('vendor_create.suggestions', 'Suggested')}</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('vendor_create.suggestions')}</p>
                             <div className="flex flex-wrap gap-2">
                                 {references.extra_services.filter(s => !formData.extra_services[s.name]).map(s => (
                                     <button
@@ -439,6 +441,36 @@ export default function VendorTourCreate() {
                             max="50000000"
                             className="form-input w-full rounded-lg border-slate-200"
                             required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('vendor_create.weekend_local_price')}</label>
+                        <input
+                            type="number"
+                            name="is_weekend_local"
+                            value={formData.is_weekend_local}
+                            onChange={handleChange}
+                            onBlur={(e) => {
+                                let val = parseInt(e.target.value, 10);
+                                if (!val || val < 1000) val = 0;
+                                setFormData(prev => ({ ...prev, is_weekend_local: val }));
+                            }}
+                            className="form-input w-full rounded-lg border-slate-200"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('vendor_create.weekend_foreg_price')}</label>
+                        <input
+                            type="number"
+                            name="is_weekend_foreg"
+                            value={formData.is_weekend_foreg}
+                            onChange={handleChange}
+                            onBlur={(e) => {
+                                let val = parseInt(e.target.value, 10);
+                                if (!val || val < 3000) val = 0;
+                                setFormData(prev => ({ ...prev, is_weekend_foreg: val }));
+                            }}
+                            className="form-input w-full rounded-lg border-slate-200"
                         />
                     </div>
                     <div>
@@ -514,7 +546,7 @@ export default function VendorTourCreate() {
                                     }
                                 }}
                                 className="form-input flex-1 rounded-lg border-slate-200"
-                                placeholder={t('vendor_create.add_condition_placeholder', 'Type condition and press Enter...')}
+                                placeholder={t('vendor_create.add_condition_placeholder')}
                             />
                             <button
                                 type="button"
@@ -533,7 +565,7 @@ export default function VendorTourCreate() {
 
                         {/* Suggestions */}
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('vendor_create.suggestions', 'Suggested')}</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('vendor_create.suggestions')}</p>
                             <div className="flex flex-wrap gap-2">
                                 {references.required_conditions.filter(c => !formData.required_conditions[c.name]).map(c => (
                                     <button
@@ -573,7 +605,7 @@ export default function VendorTourCreate() {
             <div className="flex justify-between">
                 <button type="button" onClick={prevStep} className="btn-secondary">{t('vendor_create.prev_step')}</button>
                 <button type="submit" onClick={handleSubmit} disabled={loading} className="btn-primary bg-green-600 hover:bg-green-700 border-green-600">
-                    {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Tour' : t('vendor_create.create_tour'))}
+                    {loading ? (isEditMode ? t('vendor_create.updating') : t('vendor_create.creating')) : (isEditMode ? t('vendor_create.update_tour') : t('vendor_create.create_tour'))}
                 </button>
             </div>
         </div>
@@ -582,7 +614,7 @@ export default function VendorTourCreate() {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Edit Tour' : t('vendor_create.title')}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? t('vendor_create.edit_title') : t('vendor_create.title')}</h1>
                 <p className="text-slate-500">{t('vendor_create.subtitle')}</p>
             </div>
 
@@ -615,7 +647,7 @@ export default function VendorTourCreate() {
                                 value={newCategoryName}
                                 onChange={(e) => setNewCategoryName(e.target.value)}
                                 className="form-input w-full"
-                                placeholder={t('vendor_create.category_name')} // Reusing key as placeholder
+                                placeholder={t('vendor_create.category_name')}
                                 autoFocus
                             />
                         </div>

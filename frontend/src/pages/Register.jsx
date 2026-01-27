@@ -34,7 +34,21 @@ export default function Register() {
         navigate('/profile');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || t('register.error_default'));
+      if (err.response?.data) {
+        // If it's a field error (object), join the messages
+        const data = err.response.data;
+        if (typeof data === 'object' && !data.detail) {
+          const messages = Object.keys(data).map(key => {
+            const val = data[key];
+            return `${key}: ${Array.isArray(val) ? val.join(', ') : val}`;
+          });
+          setError(messages.join(' | '));
+        } else {
+          setError(data.detail || t('register.error_default'));
+        }
+      } else {
+        setError(t('register.error_default'));
+      }
     }
   };
 

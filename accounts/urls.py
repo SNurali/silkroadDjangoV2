@@ -1,8 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .views import UploadImageView, UserGalleryViewSet
+from .views import UploadImageView, UserGalleryViewSet, AgentDashboardAPIView
 from .views_security import SendVerificationCodeView, VerifyVerificationCodeView, GlobalLogoutView
+from .views_oauth import GoogleOAuthLoginView, GoogleOAuthCallbackView, GoogleOAuthStatusView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 app_name = 'accounts'
@@ -28,6 +29,11 @@ urlpatterns = [
     path('security/send-code/', SendVerificationCodeView.as_view(), name='send-code'),
     path('security/verify-code/', VerifyVerificationCodeView.as_view(), name='verify-code'),
     path('security/global-logout/', GlobalLogoutView.as_view(), name='global-logout'),
+    
+    # Google OAuth
+    path('oauth/google/', GoogleOAuthLoginView.as_view(), name='oauth_google'),
+    path('oauth/google/callback/', GoogleOAuthCallbackView.as_view(), name='oauth_google_callback'),
+    path('oauth/google/status/', GoogleOAuthStatusView.as_view(), name='oauth_google_status'),
 
     # Image Upload (POST)
     path('me/images/upload/', UploadImageView.as_view(), name='upload_image'), 
@@ -53,6 +59,9 @@ urlpatterns = [
     # I will add 'upload/' suffix for clarity.
     
     path('me/images/upload/', UploadImageView.as_view(), name='upload-image'),
+    
+    # Agent Dashboard
+    path('agent/dashboard/', views.AgentDashboardAPIView.as_view(), name='agent-dashboard'),
     
     # Gallery (GET, DELETE, PATCH)
     # Using Router is easiest for ViewSets.

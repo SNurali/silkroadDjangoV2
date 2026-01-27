@@ -6,6 +6,11 @@ import { motion } from 'framer-motion';
 import { getLocalized, getCookie } from '../utils/i18n';
 import { useTranslation, Trans } from 'react-i18next';
 import { clsx } from 'clsx';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format } from "date-fns";
+import { ru, uz, enUS } from 'date-fns/locale';
+import CompactSearchBar from '../components/ui/SearchBar';
 
 export default function Home() {
     const { t } = useTranslation();
@@ -13,41 +18,14 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('hotels');
 
-    // Search State
-    const [location, setLocation] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [dates, setDates] = useState('');
-    const [guests, setGuests] = useState('2 Guests');
-    const lang = getCookie('django_language');
+    const [adults, setAdults] = useState(2);
+    const [children, setChildren] = useState(0);
+    const [rooms, setRooms] = useState(1);
 
+    const lang = getCookie('django_language');
     const navigate = useNavigate();
 
-    // Autocomplete Logic
-    useEffect(() => {
-        const fetchSuggestions = async () => {
-            if (location.length < 2) {
-                setSuggestions([]);
-                return;
-            }
-            try {
-                const res = await api.get(`/locations/search/?q=${encodeURIComponent(location)}&lang=${lang}`);
-                setSuggestions(res.data);
-                setShowSuggestions(true);
-            } catch (err) {
-                console.error("Failed to fetch suggestions", err);
-            }
-        };
-
-        const timeoutId = setTimeout(fetchSuggestions, 300); // Debounce
-        return () => clearTimeout(timeoutId);
-    }, [location]);
-
-    // Close suggestions when clicking outside (simple version: close on selection)
-    const handleSelectLocation = (name) => {
-        setLocation(name);
-        setShowSuggestions(false);
-    };
+    // Selection Logic
 
     useEffect(() => {
         const fetchHotels = async () => {
@@ -76,11 +54,6 @@ export default function Home() {
         fetchHotels();
     }, []);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        // Navigate to Hotel List with query params
-        navigate(`/hotels?location=${encodeURIComponent(location)}&dates=${encodeURIComponent(dates)}`);
-    };
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
@@ -142,81 +115,28 @@ export default function Home() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, duration: 0.5 }}
-                        className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none shadow-2xl p-4 md:p-8 transition-colors border border-white/20"
                     >
                         {activeTab === 'hotels' && (
-                            <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                                <div className="space-y-2 relative">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-widest">{t('home.search_location')}</label>
-                                    <div className="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 bg-slate-50 dark:bg-slate-900 focus-within:ring-2 ring-blue-500 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all shadow-inner">
-                                        <MapPin className="text-blue-500 dark:text-blue-400" size={24} />
-                                        <input
-                                            type="text"
-                                            placeholder={t('home.search_placeholder_location')}
-                                            className="bg-transparent w-full focus:outline-none text-slate-800 dark:text-slate-200 placeholder:text-slate-400 font-semibold"
-                                            value={location}
-                                            onChange={(e) => {
-                                                setLocation(e.target.value);
-                                                if (e.target.value.length < 2) setShowSuggestions(false);
-                                            }}
-                                            onFocus={() => location.length >= 2 && setShowSuggestions(true)}
-                                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                        />
-                                    </div>
-                                    {showSuggestions && suggestions.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 z-50 overflow-hidden ring-1 ring-black/5">
-                                            {suggestions.map((item) => (
-                                                <div
-                                                    key={`${item.type}-${item.id}`}
-                                                    className="px-5 py-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-slate-50 dark:border-slate-700 last:border-0 transition-colors"
-                                                    onClick={() => handleSelectLocation(item.display_name)}
-                                                >
-                                                    <div className="font-bold text-slate-800 dark:text-white text-base">{item.display_name}</div>
-                                                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-tighter flex justify-between mt-1">
-                                                        <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded italic">{item.type}</span>
-                                                        {item.name !== item.display_name && <span className="opacity-40">{item.name}</span>}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-widest">{t('home.search_dates')}</label>
-                                    <div className="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 bg-slate-50 dark:bg-slate-900 focus-within:ring-2 ring-blue-500 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all shadow-inner">
-                                        <Calendar className="text-blue-500 dark:text-blue-400" size={24} />
-                                        <input
-                                            type="date"
-                                            className="bg-transparent w-full focus:outline-none text-slate-800 dark:text-slate-200 font-semibold appearance-none"
-                                            value={dates}
-                                            onChange={(e) => setDates(e.target.value)}
-                                            min={new Date().toISOString().split('T')[0]}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-widest">{t('home.search_guests')}</label>
-                                    <div className="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 bg-slate-50 dark:bg-slate-900 focus-within:ring-2 ring-blue-500 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all shadow-inner">
-                                        <Users className="text-blue-500 dark:text-blue-400" size={24} />
-                                        <select
-                                            className="bg-transparent w-full focus:outline-none text-slate-800 dark:text-slate-200 font-semibold cursor-pointer"
-                                            value={guests}
-                                            onChange={(e) => setGuests(e.target.value)}
-                                        >
-                                            <option value="2 Guests, 1 Room">{t('home.guests_2_1')}</option>
-                                            <option value="1 Guest, 1 Room">{t('home.guests_1_1')}</option>
-                                            <option value="Family (2+1)">{t('home.guests_family')}</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <button type="submit" className="h-[60px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold rounded-xl shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 transition-all active:scale-95 group">
-                                    <Search size={22} className="group-hover:rotate-12 transition-transform" />
-                                    <span className="text-lg uppercase tracking-tight">{t('home.search_btn')}</span>
-                                </button>
-                            </form>
+                            <CompactSearchBar
+                                onSearch={(data) => {
+                                    const params = new URLSearchParams();
+                                    if (data.location) params.append('location', data.location);
+                                    if (data.startDate) params.append('check_in', format(data.startDate, 'yyyy-MM-dd'));
+                                    if (data.endDate) params.append('check_out', format(data.endDate, 'yyyy-MM-dd'));
+                                    params.append('adults', data.adults);
+                                    params.append('children', data.children);
+                                    params.append('rooms', data.rooms);
+                                    navigate(`/hotels?${params.toString()}`);
+                                }}
+                                initialData={{
+                                    locationLabel: t('home.search_location'),
+                                    locationPlaceholder: t('home.search_placeholder_location'),
+                                    dateLabel: t('home.search_dates'),
+                                    datePlaceholder: t('home.search_placeholder_dates'),
+                                    guestLabel: t('home.search_guests'),
+                                    adults, children, rooms
+                                }}
+                            />
                         )}
 
                         {activeTab === 'flights' && (
