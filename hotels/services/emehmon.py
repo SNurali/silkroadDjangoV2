@@ -107,22 +107,11 @@ class EMehmonService:
         url = self.foreign_api_url
         
         try:
-            if settings.DEBUG:
-                logger.info(f"MOCK Foreigner Data Request for {passport}")
-                return {
-                    'success': True,
-                    'data': {
-                        'entry_date': '2023-10-15',
-                        'days_left': 12,
-                        'violations': [],
-                        'current_registration': 'Hotel Uzbekistan, Tashkent',
-                        'visa_expiry': '2024-01-15'
-                    }
-                }
-            
-            response = requests.post(url, json=data, timeout=10)
-            response.raise_for_status()
-            return {'success': True, 'data': response.json()}
+           # TODO: REAL API REQUIRED (Phase 3)
+           # Ensure we only use real endpoints
+             response = requests.post(url, json=data, timeout=10)
+             response.raise_for_status()
+             return {'success': True, 'data': response.json()}
         except Exception as e:
             logger.error(f"EMehmon Foreigner API Error: {str(e)}")
             return {'success': False, 'message': str(e)}
@@ -132,15 +121,18 @@ class EMehmonService:
         Syncs room availability for a specific hotel from e-mehmon.
         """
         logger.info(f"Syncing availability for hotel {hotel_emehmon_id}")
-        # Simplified: Request availability matrix
-        return {'success': True, 'data': []}
+        # TODO: REAL API REQUIRED (Phase 3)
+        # raise NotImplementedError("Real API for sync_hotel_availability not implemented yet")
+        return {'success': False, 'message': 'REAL API REQUIRED'}
 
     def sync_booking_status(self, emehmon_booking_id):
         """
         Pulls the latest status of a booking from e-mehmon.
         """
         logger.info(f"Syncing status for booking {emehmon_booking_id}")
-        return {'success': True, 'status': 'CONFIRMED'}
+        # TODO: REAL API REQUIRED (Phase 3)
+        # raise NotImplementedError("Real API for sync_booking_status not implemented yet")
+        return {'success': False, 'message': 'REAL API REQUIRED'}
 
     def _reach_data_from_mvd(self, data):
         """
@@ -166,13 +158,6 @@ class EMehmonService:
 
     def _mock_response(self, data):
         """Mock response for testing purposes"""
-        if data['psp'].startswith('AA') or data['psp'].startswith('FA'):
-            return {
-                'status': 'success',
-                'psp': {
-                    'name': 'TESTOV TEST TESTOVICH',
-                    'sex': 1,
-                    'person_id': '123456789'
-                }
-            }
-        return {'status': 'error'}
+        # TODO: REAL API REQUIRED (Phase 3)
+        # return {'status': 'error', 'message': 'Mock data disabled in Enterprise Mode'}
+        return {'status': 'error', 'message': 'REAL API REQUIRED'}

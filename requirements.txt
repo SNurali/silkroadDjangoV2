@@ -8,11 +8,9 @@ django-cors-headers==4.9.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 idna==3.11
-mysqlclient==2.2.7
 pillow==12.1.0
 pycparser==3.0
 PyJWT==2.10.1
-PyMySQL==1.1.2
 python-dotenv==1.2.1
 pytz==2025.2
 requests==2.32.5
@@ -20,6 +18,9 @@ sqlparse==0.5.5
 urllib3==2.6.3
 reportlab==4.2.5
 qrcode[pil]==8.0
-Pillow==12.1.0
 django-simple-captcha==0.6.0
 django-allauth==0.57.0
+psycopg2-binary==2.9.9
+django-redis==5.4.0
+celery==5.3.6
+redis==5.0.1

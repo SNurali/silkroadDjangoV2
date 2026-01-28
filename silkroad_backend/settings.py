@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'bookings',
     'config_module',
     'admin_panel',
+    'payments',
+    'analytics',
     
     # Third-party
     'captcha',
@@ -78,6 +80,8 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',  # django-allauth
     'django.contrib.messages.middleware.MessageMiddleware',
     'config_module.middleware.MaintenanceMiddleware',
+    'vendors.middleware.VendorContextMiddleware',
+    'silkroad_backend.middleware.SecurityMiddleware',
 ]
 
 # ───────────────────────────────────────────────
@@ -117,31 +121,14 @@ DATABASES = {
         'NAME': os.getenv('DB_DATABASE', 'silkroad'),
         'USER': os.getenv('DB_USERNAME', 'silkroad'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'silkroad'),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        }
     }
 }
-
-DATABASES['legacy'] = {
-    'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'silkroad_php',
-    'USER': 'django_migrate',
-    'PASSWORD': 'SERGELI8A',
-    'HOST': 'host.docker.internal',
-    'PORT': '3306',
-    'OPTIONS': {'charset': 'utf8mb4'},
-}
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'silkroad_django_db',
-    #     'USER': 'django',
-    #     'PASSWORD': 'django123',
-    #     'HOST': '127.127.126.32',
-    #     'PORT': '3306',
-    #     'OPTIONS': {
-    #         'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-    #     }
-    # }
 
 # ───────────────────────────────────────────────
 # Password validation
@@ -206,6 +193,18 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 12,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+        'login': '5/minute',
+        'booking': '10/minute',
+        'export': '5/minute',
+    }
 }
 
 # ───────────────────────────────────────────────
@@ -213,7 +212,7 @@ REST_FRAMEWORK = {
 # ───────────────────────────────────────────────
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=365),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=365),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,
@@ -343,3 +342,25 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+
+# ───────────────────────────────────────────────
+# ✅ CELERY SETTINGS (Async Tasks)
+# ───────────────────────────────────────────────
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Cache configuration (Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}

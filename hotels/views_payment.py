@@ -12,7 +12,8 @@ import logging
 
 from silkroad_backend.services.emehmon import EmehmonService
 from silkroad_backend.services.yagona import YagonaBillingService
-from hotels.models import Ticket
+from vendors.models import TicketSale
+from bookings.models import Booking
 
 logger = logging.getLogger(__name__)
 
@@ -109,17 +110,15 @@ class PaymentConfirmAPIView(APIView):
         obj_type = None
 
         if ticket_id:
-             from hotels.models import Ticket
-             target_obj = get_object_or_404(Ticket, pk=ticket_id, created_by=request.user)
+             target_obj = get_object_or_404(TicketSale, pk=ticket_id, created_by=request.user)
              obj_type = 'ticket'
-             if target_obj.is_paid:
-                 return Response({'error': 'Ticket already paid'}, status=400)
+             if target_obj.payment_status == 'paid':
+                  return Response({'error': 'Ticket already paid'}, status=400)
              amount_to_pay = target_obj.total_amount
         else:
-             from hotels.models import Booking
              target_obj = get_object_or_404(Booking, pk=booking_id, user=request.user)
              obj_type = 'booking'
-             if target_obj.payment_status == 'paid':
+             if target_obj.status == 'CONFIRMED':
                   return Response({'error': 'Booking already paid'}, status=400)
              amount_to_pay = target_obj.total_price
 
@@ -167,10 +166,7 @@ class PaymentConfirmAPIView(APIView):
 
     def mark_as_paid(self, obj, obj_type):
         if obj_type == 'ticket':
-            obj.is_paid = True
-            obj.is_valid = True
+            obj.payment_status = 'paid'
             obj.save()
         elif obj_type == 'booking':
-            obj.payment_status = 'paid'
-            obj.booking_status = 'confirmed'
-            obj.save()
+            obj.mark_as_paid() # Use the method from Booking model

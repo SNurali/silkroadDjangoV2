@@ -10,7 +10,9 @@ django.setup()
 
 from accounts.models import User
 from vendors.models import Vendor
-from hotels.models import Hotel, Sight, Ticket
+from hotels.models import Hotel, Sight
+from bookings.models import Booking
+from vendors.models import TicketSale
 
 # email = "agent_test@example.com"
 userId = 20
@@ -44,11 +46,11 @@ if vendor:
     print(f"Tours (by vendor): {tours_by_vendor}")
     print(f"Tours (by user): {tours_by_user}")
     
-    # 3. Tickets
-    tickets_by_vendor = Ticket.objects.filter(vendor=vendor).count()
-    tickets_by_user = Ticket.objects.filter(created_by=user).count()
-    print(f"Tickets (by vendor): {tickets_by_vendor}")
-    print(f"Tickets (by user): {tickets_by_user}")
+    # 3. TicketSales
+    tickets_by_vendor = TicketSale.objects.filter(vendor=vendor).count()
+    tickets_by_user = TicketSale.objects.filter(created_by=user).count()
+    print(f"Ticket Sales (by vendor): {tickets_by_vendor}")
+    print(f"Ticket Sales (by user): {tickets_by_user}")
 
     # Inspect a tour if mismatch
     if tours_by_vendor == 0 and tours_by_user > 0:

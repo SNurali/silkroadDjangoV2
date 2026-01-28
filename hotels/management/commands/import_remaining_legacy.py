@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from vendors.models import Vendor, MediaFile
-from hotels.models import Hotel, RoomType, Room, RoomPrice, Booking
+from hotels.models import Hotel, RoomType, Room, RoomPrice
+from bookings.models import Booking
 from accounts.models import User
 import re
 import ast

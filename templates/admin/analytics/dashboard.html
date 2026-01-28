@@ -1,0 +1,167 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --accent-blue: #3b82f6;
+        --accent-green: #10b981;
+    }
+
+    body {
+        background: #0f172a;
+        color: #f8fafc;
+    }
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+
+    .stat-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card h3 {
+        color: #94a3b8;
+        font-size: 0.875rem;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+
+    .stat-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .chart-container {
+        grid-column: span 2;
+        background: var(--glass-bg);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--glass-border);
+    }
+
+    @media (max-width: 1024px) {
+        .chart-container {
+            grid-column: span 1;
+        }
+    }
+
+    .header-nav {
+        padding: 20px;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header-nav">
+    <h1>🚀 Business Analytics (ClickHouse)</h1>
+    <div class="controls">
+        <select id="period-select" class="form-select">
+            <option value="7d">Last 7 Days</option>
+            <option value="30d" selected>Last 30 Days</option>
+            <option value="90d">Last 90 Days</option>
+        </select>
+    </div>
+</div>
+
+<div class="analytics-grid">
+    <div class="stat-card">
+        <h3>Total GMV (30d)</h3>
+        <div class="value" id="gmv-value">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <h3>Active Vendors</h3>
+        <div class="value">{{ vendors_count|default:"Fetching..." }}</div>
+    </div>
+
+    <div class="chart-container">
+        <h3>Revenue Trend</h3>
+        <canvas id="revenueChart"></canvas>
+    </div>
+
+    <div class="stat-card">
+        <h3>Bookings by Region</h3>
+        <canvas id="regionChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    async function fetchData() {
+        const period = document.getElementById('period-select').value;
+        const response = await fetch(`/admin/panel/analytics/data/?period=${period}`);
+        const data = await response.json();
+
+        // Update GMV
+        document.getElementById('gmv-value').innerText = new Intl.NumberFormat('uz-UZ', {
+            style: 'currency',
+            currency: 'UZS'
+        }).format(data.gmv);
+
+        // Revenue Chart
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        const revLabels = Object.keys(data.revenue_daily);
+        const revValues = Object.values(data.revenue_daily);
+
+        new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: revLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: revValues,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Region Chart
+        const regCtx = document.getElementById('regionChart').getContext('2d');
+        new Chart(regCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.regions),
+                datasets: [{
+                    data: Object.values(data.regions),
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } }
+            }
+        });
+    }
+
+    document.getElementById('period-select').addEventListener('change', fetchData);
+    fetchData();
+</script>
+{% endblock %}

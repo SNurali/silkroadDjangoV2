@@ -167,6 +167,7 @@ class ForeignProfileData(models.Model):
     has_violations = models.BooleanField(default=False, verbose_name=_('Есть нарушения'))
     current_registration_place = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Место текущей регистрации'))
     visa_expiry_date = models.DateField(null=True, blank=True, verbose_name=_('Срок действия визы'))
+    last_sync_at = models.DateTimeField(null=True, blank=True, verbose_name=_('Последняя синхронизация'))
     
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -177,3 +178,23 @@ class ForeignProfileData(models.Model):
 
     def __str__(self):
         return f"Foreign data for {self.user.email}"
+
+class SecurityLog(models.Model):
+    """
+    Аудит безопасности: логирует важные действия (login, export, payment).
+    """
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='security_logs')
+    action = models.CharField(max_length=255, verbose_name=_('Действие'))
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name=_('IP адрес'))
+    user_agent = models.TextField(null=True, blank=True, verbose_name=_('User Agent'))
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    metadata = models.JSONField(default=dict, blank=True, null=True)
+
+    class Meta:
+        db_table = 'tb_security_logs'
+        verbose_name = _('Лог безопасности')
+        verbose_name_plural = _('Логи безопасности')
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user} - {self.action} @ {self.timestamp}"

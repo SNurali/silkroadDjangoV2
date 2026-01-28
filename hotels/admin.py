@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Sight, SightFacility, Ticket, Hotel, Booking, HotelComment  # SightImage убрали
+from .models import Category, Sight, SightFacility, Hotel, HotelComment  # SightImage убрали
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -20,11 +20,7 @@ class SightFacilityAdmin(admin.ModelAdmin):
     list_display = ('name', 'sight')
     search_fields = ('name',)
 
-@admin.register(Ticket)
-class TicketAdmin(admin.ModelAdmin):
-    list_display = ('id', 'sight', 'vendor', 'total_qty', 'total_amount', 'is_paid', 'is_valid')
-    list_filter = ('is_paid', 'is_valid')
-    search_fields = ('sight__name', 'vendor__name')
+
 
 
 @admin.register(Hotel)
@@ -35,12 +31,7 @@ class HotelAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
 
 
-@admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'hotel', 'guest_name', 'check_in', 'check_out', 'booking_status', 'payment_status', 'created_at')
-    list_filter = ('booking_status', 'payment_status', 'created_at')
-    search_fields = ('guest_name', 'guest_email', 'hotel__name')
-    date_hierarchy = 'created_at'
+
 
 
 @admin.register(HotelComment)

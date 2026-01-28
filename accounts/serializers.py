@@ -13,6 +13,9 @@ class UserImageSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     images = UserImageSerializer(many=True, read_only=True)
 
+    active_context = serializers.SerializerMethodField()
+    has_vendors = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -30,8 +33,19 @@ class UserSerializer(serializers.ModelSerializer):
             "pspissuedt",
             "role",
             "images",
+            "active_context",
+            "has_vendors",
         )
-        read_only_fields = ('id', 'email', 'role', 'images')
+        read_only_fields = ('id', 'email', 'role', 'images', 'active_context', 'has_vendors')
+
+    def get_active_context(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'active_context'):
+            return request.active_context
+        return 'user'
+
+    def get_has_vendors(self, obj):
+        return obj.vendor_roles.exists()
 
 
 
@@ -78,19 +92,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
     # Explicitly define photo to accept Image/File, not just Char
     photo = serializers.ImageField(required=False, allow_null=True, write_only=True)
     
+    active_context = serializers.SerializerMethodField()
+    has_vendors = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
             'id', 'name', 'email', 'phone', 'passport', 
             'sex', 'id_citizen', 'dtb', 'pspissuedt', 
-            'avatar_url', 'photo', 'foreign_data'
+            'avatar_url', 'photo', 'foreign_data',
+            'active_context', 'has_vendors'
         )
-        read_only_fields = ('id', 'email', 'avatar_url')
+        read_only_fields = ('id', 'email', 'avatar_url', 'active_context', 'has_vendors')
+
+    def get_active_context(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'active_context'):
+            return request.active_context
+        return 'user'
+
+    def get_has_vendors(self, obj):
+        return obj.vendor_roles.exists()
 
     def get_avatar_url(self, obj):
         if obj.photo:
-             if obj.photo.startswith('http'):
-                 return obj.photo
+             photo_str = str(obj.photo)
+             if photo_str.startswith('http'):
+                 return photo_str
              request = self.context.get('request')
              if request:
                  return request.build_absolute_uri(f'/media/avatars/{obj.photo}')

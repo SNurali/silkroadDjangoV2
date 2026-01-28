@@ -8,6 +8,8 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 import re
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,11 +17,14 @@ from rest_framework import status, viewsets, generics, filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from silkroad_backend.permissions import IsObjectOwner
 
 from locations.models import Region
-from hotels.models import Category, Sight, SightFacility, Ticket, Hotel, Room, RoomType, Booking, RoomPrice
-from .forms import SightForm, TicketForm, BookingForm
-from .serializers import SightSerializer, TicketSerializer, HotelSerializer, BookingSerializer
+from hotels.models import Category, Sight, SightFacility, Hotel, Room, RoomType, RoomPrice
+from .forms import SightForm
+from .serializers import SightSerializer, HotelSerializer
+from bookings.models import Booking
+from bookings.serializers import BookingSerializer
 
 
 # ───────────────────────────────────────────────
@@ -106,11 +111,8 @@ class SightDetailView(DetailView):
         })
 
         if sight.enable_tickets:
-            context['ticket_form'] = TicketForm(
-                sight=sight,
-                user=self.request.user,
-                initial={'sight_id': sight.pk}
-            )
+             # Ticket form logic removed - handled by vendors app
+             pass
 
         return context
 
@@ -135,35 +137,7 @@ class SightCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class TicketCreateView(LoginRequiredMixin, CreateView):
-    """
-    Покупка / бронирование билета на достопримечательность (веб-форма).
-    """
-    model = Ticket
-    form_class = TicketForm
-    template_name = 'hotels/sight_detail.html'
-    success_url = reverse_lazy('accounts:profile')
 
-    def dispatch(self, request, *args, **kwargs):
-        self.sight = get_object_or_404(Sight, pk=kwargs['pk'], status='active')
-        if not self.sight.enable_tickets:
-            return redirect('hotels:sight_detail', pk=self.sight.pk)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.update({
-            'sight': self.sight,
-            'user': self.request.user,
-        })
-        return kwargs
-
-    def form_valid(self, form):
-        form.instance.sight = self.sight
-        form.instance.vendor = self.sight.vendor
-        form.instance.created_by = self.request.user
-        form.instance.total_amount = form.instance.calculate_total()
-        return super().form_valid(form)
 
 
 def calculate_total(request):
@@ -179,6 +153,7 @@ def calculate_total(request):
 
 
 
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class HotelListView(ListView):
     """
     Список отелей (Grid/List).
@@ -189,7 +164,7 @@ class HotelListView(ListView):
     paginate_by = 9
 
     def get_queryset(self):
-        qs = Hotel.objects.filter(is_active=True).select_related('region')
+        qs = Hotel.objects.filter(is_active=True).select_related('region', 'vendor').prefetch_related('rooms', 'rooms__room_type')
         
         region_id = self.request.GET.get('region')
         name_query = self.request.GET.get('name')
@@ -245,51 +220,18 @@ class HotelDetailView(DetailView):
         return context
 
 
-class BookingCreateView(LoginRequiredMixin, CreateView):
-    """
-    Страница бронирования (Booking Form).
-    """
-    model = Booking
-    form_class = BookingForm
-    template_name = 'hotels/booking.html'
-    success_url = reverse_lazy('accounts:profile')
-
-    def dispatch(self, request, *args, **kwargs):
-        self.hotel = get_object_or_404(Hotel, pk=kwargs['pk'], is_active=True)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['hotel'] = self.hotel
-        
-        # Pre-fill data if passed from Detail Page
-        check_in = self.request.GET.get('check_in')
-        check_out = self.request.GET.get('check_out')
-        adults = self.request.GET.get('adults')
-        
-        if check_in:
-             context['initial_check_in'] = check_in
-        if check_out:
-             context['initial_check_out'] = check_out
-        
-        return context
-
-    def form_valid(self, form):
-        form.instance.hotel = self.hotel
-        form.instance.user = self.request.user if self.request.user.is_authenticated else None
-        # Payment status pending
-        form.instance.booking_status = 'pending'
-        return super().form_valid(form)
 
 
 
+
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class HotelListAPIView(generics.ListAPIView):
     """
     API List for Hotels with search and filtering.
     """
     permission_classes = [AllowAny]
     authentication_classes = []
-    queryset = Hotel.objects.filter(is_active=True).select_related('region')
+    queryset = Hotel.objects.filter(is_active=True).select_related('region', 'vendor').prefetch_related('rooms', 'rooms__room_type')
     serializer_class = HotelSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
@@ -323,11 +265,8 @@ class HotelListAPIView(generics.ListAPIView):
         if adults:
             try:
                 total_guests = int(adults) + int(children or 0)
-                # Filter hotels that have at least one room type accommodating this many people
-                # RoomType usually has capacity info (verified in models or assuming here)
-                # If we don't have capacity field, we might skip or use a default.
-                # Assuming RoomType has a field 'capacity' or similar.
-                # Let's check models.py for Room/RoomType fields.
+                # Filter hotels that have at least one room accommodating this many people
+                qs = qs.filter(rooms__room_type__capacity__gte=total_guests).distinct()
             except ValueError:
                 pass
 
@@ -336,15 +275,18 @@ class HotelListAPIView(generics.ListAPIView):
         max_price = self.request.query_params.get('price_max')
         
         if min_price or max_price:
-            p_min = float(min_price) if min_price else 0
-            p_max = float(max_price) if max_price else 10000000 
-            
-            # Filter hotels that have ANY price in range (either in RoomPrice or deposit fields)
-            qs = qs.filter(
-                Q(room_prices__usd__range=(p_min, p_max)) |
-                Q(deposit__range=(p_min, p_max)) |
-                Q(deposit_turizm__range=(p_min, p_max))
-            ).distinct()
+            try:
+                p_min = float(min_price) if min_price else 0
+                p_max = float(max_price) if max_price else 10000000 
+                
+                # Filter hotels that have ANY room price or deposit in range
+                qs = qs.filter(
+                    Q(room_prices__usd__range=(p_min, p_max)) |
+                    Q(deposit__range=(p_min, p_max)) |
+                    Q(deposit_turizm__range=(p_min, p_max))
+                ).distinct()
+            except ValueError:
+                pass
 
         # 4. Stars Multi-select Filter
         stars_param = self.request.query_params.get('stars')
@@ -352,9 +294,19 @@ class HotelListAPIView(generics.ListAPIView):
             try:
                 star_list = [int(s.strip()) for s in stars_param.split(',') if s.strip().isdigit()]
                 if star_list:
+                    # If user selects specific stars, we filter by them
+                    # But often if '5' is selected, they want 5 and up.
+                    # For multi-select from sidebar, 'in' is correct.
                     qs = qs.filter(stars__in=star_list)
             except ValueError:
                 pass
+        
+        # 5. Amenities Filter (Optional, added specifically for robustness)
+        amenities_param = self.request.query_params.get('amenities')
+        if amenities_param:
+            amenity_list = [a.strip() for a in amenities_param.split(',') if a.strip()]
+            for amenity in amenity_list:
+                qs = qs.filter(amenities_services__icontains=amenity)
 
         return qs
 
@@ -433,7 +385,7 @@ class HotelRoomSearchAPIView(APIView):
         # Overlap logic: (StartA <= EndB) AND (EndA >= StartB)
         booked_rooms = Booking.objects.filter(
             hotel=hotel,
-            booking_status__in=['confirmed', 'pending']
+            status__in=['CONFIRMED', 'NEW']
         ).filter(
             Q(check_in__lte=check_out_date) & Q(check_out__gte=check_in_date)
         ).values_list('selected_rooms_json', flat=True)
@@ -621,7 +573,7 @@ class TicketListAPIView(APIView):
     API для списка (GET) и создания (POST) билетов текущего пользователя.
     Запрещено покупать один и тот же билет дважды.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsObjectOwner]
 
     def get(self, request):
         tickets = Ticket.objects.filter(created_by=request.user).select_related('sight', 'vendor')
@@ -822,9 +774,9 @@ class BookingViewSet(viewsets.ModelViewSet):
     CRUD for Bookings.
     Replicates Legacy HotelsController logic.
     """
-    queryset = Booking.objects.all()
+    queryset = Booking.objects.all().select_related('user', 'hotel', 'room_type')
     serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsObjectOwner]
 
     def get_queryset(self):
         # Users see their own bookings

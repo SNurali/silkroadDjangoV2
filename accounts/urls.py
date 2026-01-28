@@ -4,7 +4,7 @@ from . import views
 from .views import UploadImageView, UserGalleryViewSet, AgentDashboardAPIView
 from .views_security import SendVerificationCodeView, VerifyVerificationCodeView, GlobalLogoutView
 from .views_oauth import GoogleOAuthLoginView, GoogleOAuthCallbackView, GoogleOAuthStatusView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 app_name = 'accounts'
 
@@ -24,6 +24,8 @@ urlpatterns = [
     path('auth/google/', views.GoogleLoginView.as_view(), name='google_login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('profile/', views.UserProfileView.as_view(), name='profile'),
     path('profile/password/', views.ChangePasswordView.as_view(), name='change_password'),
     path('security/send-code/', SendVerificationCodeView.as_view(), name='send-code'),

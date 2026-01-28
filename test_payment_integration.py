@@ -16,8 +16,9 @@ django.setup()
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from silkroad_backend.services.yagona import YagonaBillingService
-from hotels.models import Hotel, Booking, Ticket, Sight
-from vendors.models import Vendor
+from hotels.models import Hotel, Sight
+from bookings.models import Booking
+from vendors.models import Vendor, TicketSale
 from decimal import Decimal
 
 User = get_user_model()
@@ -107,21 +108,18 @@ def test_fake_payment_flow():
                 price_per_night=100.00
             )
         
+        from config_module.models import CurrencyRate
         # Create test booking
         booking = Booking.objects.create(
             hotel=hotel,
             user=user,
-            guest_name='John Doe',
-            guest_email='john@example.com',
-            guest_phone='998901234567',
             check_in='2026-02-01',
             check_out='2026-02-05',
             adults=2,
             children=0,
             total_price=Decimal('400.00'),
-            selected_rooms_json={'rooms': [{'room_type': 1, 'quantity': 1}]},
-            payment_status='pending',
-            booking_status='pending'
+            currency=CurrencyRate.objects.get_or_create(code='UZS', defaults={'rate': 1})[0],
+            status='NEW'
         )
         
         print(f"\n✓ Created test booking: #{booking.id}")
@@ -168,10 +166,7 @@ def test_fake_payment_flow():
         # Verify booking status
         booking.refresh_from_db()
         print(f"\n→ Step 3: Verifying booking status...")
-        print(f"  - Payment Status: {booking.payment_status}")
-        print(f"  - Booking Status: {booking.booking_status}")
-        
-        if booking.payment_status == 'paid' and booking.booking_status == 'confirmed':
+        if booking.status == 'CONFIRMED':
             print("\n✅ FAKE PAYMENT FLOW SUCCESSFUL!")
             return True
         else:
@@ -220,10 +215,11 @@ def test_booking_model():
     
     try:
         # Check model fields
-        from hotels.models import Booking
+        # Check model fields
+        from bookings.models import Booking
         fields = [f.name for f in Booking._meta.get_fields()]
         
-        required_fields = ['payment_status', 'booking_status', 'total_price']
+        required_fields = ['status', 'total_price', 'currency']
         
         print("\n✓ Checking required payment fields...")
         for field in required_fields:
@@ -233,9 +229,9 @@ def test_booking_model():
                 print(f"  ❌ {field} - MISSING!")
                 return False
         
-        # Check payment status choices
-        status_field = Booking._meta.get_field('payment_status')
-        print(f"\n✓ Payment status field type: {status_field.get_internal_type()}")
+        # Check status choices
+        status_field = Booking._meta.get_field('status')
+        print(f"\n✓ Status field type: {status_field.get_internal_type()}")
         
         print("\n✅ All required fields present!")
         return True

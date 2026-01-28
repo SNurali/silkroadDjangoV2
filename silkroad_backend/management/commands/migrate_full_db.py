@@ -7,8 +7,9 @@ from django.core.management.base import BaseCommand
 from django.db import connections, transaction
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from hotels.models import Category, Sight, SightFacility, Ticket, Hotel, Room, RoomType, Booking
-from vendors.models import Vendor
+from hotels.models import Category, Sight, SightFacility, Hotel, Room, RoomType
+from bookings.models import Booking
+from vendors.models import Vendor, TicketSale
 from locations.models import Country, Region, District
 
 User = get_user_model()
@@ -27,7 +28,7 @@ class Command(BaseCommand):
         if not options['no_clear']:
             self.stdout.write("Clearing existing data...")
             Booking.objects.all().delete()
-            Ticket.objects.all().delete()
+            TicketSale.objects.all().delete()
             Room.objects.all().delete()
             RoomType.objects.all().delete()
             Hotel.objects.all().delete()

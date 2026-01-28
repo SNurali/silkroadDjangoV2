@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.db.models import Count, Sum
-from hotels.serializers import BookingSerializer
-from hotels.models import Booking, Ticket
+from bookings.serializers import BookingSerializer
+from bookings.models import Booking
 from vendors.models import Vendor
 
 class AgentDashboardAPIView(APIView):
@@ -19,12 +19,12 @@ class AgentDashboardAPIView(APIView):
             return Response({"error": "Only agents can access this dashboard"}, status=status.HTTP_403_FORBIDDEN)
             
         # Stats
-        total_bookings = Booking.objects.filter(created_by=request.user).count()
-        active_bookings = Booking.objects.filter(created_by=request.user, booking_status='confirmed').count()
-        total_tickets = Ticket.objects.filter(created_by=request.user).count()
+        total_bookings = Booking.objects.filter(user=request.user).count()
+        active_bookings = Booking.objects.filter(user=request.user, status='CONFIRMED').count()
+        total_tickets = 0 # Legacy ticket system removed
         
         # Revenue/Total Spend (If applicable)
-        total_spent = Booking.objects.filter(created_by=request.user, booking_status='confirmed').aggregate(Sum('total_price'))['total_price__sum'] or 0
+        total_spent = Booking.objects.filter(user=request.user, status='CONFIRMED').aggregate(Sum('total_price'))['total_price__sum'] or 0
         
         return Response({
             'stats': {
@@ -33,5 +33,5 @@ class AgentDashboardAPIView(APIView):
                 'total_tickets': total_tickets,
                 'total_spent': total_spent,
             },
-            'recent_bookings': BookingSerializer(Booking.objects.filter(created_by=request.user).order_by('-created_at')[:5], many=True).data,
+            'recent_bookings': BookingSerializer(Booking.objects.filter(user=request.user).order_by('-created_at')[:5], many=True).data,
         })

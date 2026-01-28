@@ -1,11 +1,6 @@
-
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_api, views_payment, views_pdf
-
-router = DefaultRouter()
-router.register(r'bookings', views.BookingViewSet, basename='booking')
 
 urlpatterns = [
     # Hotels (Root of api/hotels/)
@@ -28,25 +23,16 @@ urlpatterns = [
     path('sights/', views.SightListAPIView.as_view(), name='api_sight_list'),
     path('sights/<int:pk>/', views.SightDetailAPIView.as_view(), name='api_sight_detail'),
     
-    # Tickets
-    path('tickets/', views.TicketListAPIView.as_view(), name='api_ticket_list'),
-    path('tickets/buy/', views.TicketCreateAPIView.as_view(), name='api_ticket_buy'),
-    path('tickets/pay/', views.PayTicketAPIView.as_view(), name='api_ticket_pay_legacy'),
+    # PDF Downloads
     path('tickets/<int:pk>/download/', views_pdf.TicketPDFDownloadView.as_view(), name='api_ticket_download'),
+    path('bookings/<int:pk>/download/', views_pdf.BookingPDFDownloadView.as_view(), name='api_booking_download'),
+    path('bookings/<int:pk>/preview/', views_pdf.BookingPDFPreviewView.as_view(), name='api_booking_preview'),
 
-    # Legacy mappings (preserved)
+    # Legacy mappings (preserved if views exist)
     path('categories/', views_api.CategoryListAPIView.as_view(), name='api_category_list'),
-    path('buy-ticket/', views_api.TicketPurchaseView.as_view(), name='api_ticket_purchase'),
 
-    # Payment System (Emehmon + Yagona) - New
+    # Payment System (Emehmon + Yagona)
     path('emehmon/check/', views_payment.PersonInfoAPIView.as_view(), name='api_emehmon_check'),
     path('payment/register/', views_payment.CardRegisterAPIView.as_view(), name='api_payment_register'),
     path('payment/confirm/', views_payment.PaymentConfirmAPIView.as_view(), name='api_payment_confirm'),
-    
-    # ViewSets
-    path('', include(router.urls)),
-    
-    # PDF Downloads (Bookings)
-    path('bookings/<int:pk>/download/', views_pdf.BookingPDFDownloadView.as_view(), name='api_booking_download'),
-    path('bookings/<int:pk>/preview/', views_pdf.BookingPDFPreviewView.as_view(), name='api_booking_preview'),
 ]

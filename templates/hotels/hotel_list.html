@@ -19,7 +19,7 @@
                     class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Все регионы</option>
                     {% for reg in regions %}
-                    <option value="{{ reg.id }}" {% if selected_region==reg.id|slugify %}selected{% endif %}>
+                    <option value="{{ reg.id }}" {% if selected_region == reg.id|slugify %}selected{% endif %}>
                         {{ reg.name }}
                     </option>
                     {% endfor %}

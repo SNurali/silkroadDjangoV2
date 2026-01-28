@@ -4,7 +4,11 @@ from .views import (
     VendorDashboardView, VendorHotelViewSet, VendorSightViewSet, VendorSettingsView, 
     VendorBookingViewSet, VendorTicketViewSet, VendorSwitchView, UserSwitchView  # Add new views
 )
-from .views_api import VendorRegistrationView, VendorStatsView, ReferenceView, VendorCategoryCreateView
+from .views_api import (
+    VendorRegistrationView, VendorStatsView, ReferenceView, 
+    VendorCategoryCreateView, VendorApplyView, VendorApproveView, VendorRejectView
+)
+from .views_auth import SwitchToVendorContextView, SwitchToUserContextView, VendorListView
 from .views_vendor_api import (
     VendorDashboardStatsView, VendorServiceListCreateView, VendorServiceDetailView,
     ServiceTicketListCreateView, TicketSaleListView, SalesAnalyticsView
@@ -27,8 +31,16 @@ urlpatterns = [
     path('upload-image/', VendorSightViewSet.as_view({'post': 'upload_image'}), name='vendor-upload-image'),
     
     # Role switching endpoints
-    path('switch-to-vendor/', VendorSwitchView.as_view(), name='vendor-switch-to-vendor'),
+    path('switch-to-vendor/<int:vendor_id>/', VendorSwitchView.as_view(), name='vendor-switch-to-vendor'),
     path('switch-to-user/', UserSwitchView.as_view(), name='vendor-switch-to-user'),
+    path('my-vendors/', VendorListView.as_view(), name='vendor-my-vendors'),
+    path('switch-context/to-vendor/<int:vendor_id>/', SwitchToVendorContextView.as_view(), name='vendor-switch-context-to-vendor'),
+    path('switch-context/to-user/', SwitchToUserContextView.as_view(), name='vendor-switch-context-to-user'),
+    
+    # Apply & Moderation
+    path('apply/', VendorApplyView.as_view(), name='vendor-apply'),
+    path('admin/<int:vendor_id>/approve/', VendorApproveView.as_view(), name='vendor-approve'),
+    path('admin/<int:vendor_id>/reject/', VendorRejectView.as_view(), name='vendor-reject'),
     
     # New enterprise endpoints
     path('dashboard-stats/', VendorDashboardStatsView.as_view(), name='vendor-dashboard-stats'),

@@ -24,12 +24,11 @@ class VendorDashboardStatsView(APIView):
     permission_classes = [IsVendorOperator]
 
     def get(self, request):
-        try:
-            vendor = request.user.vendor_profile
-        except AttributeError:
+        vendor = request.vendor
+        if not vendor:
             return Response(
-                {'error': 'Vendor profile not found'}, 
-                status=status.HTTP_404_NOT_FOUND
+                {'error': 'No active vendor context.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         # Calculate stats
@@ -63,7 +62,8 @@ class VendorDashboardStatsView(APIView):
             'total_revenue': float(total_revenue),
             'recent_sales': TicketSaleSerializer(recent_sales, many=True).data,
             'top_services': VendorServiceSerializer(top_services, many=True).data,
-            'vendor_role': vendor.operator_role,
+            'vendor_role': request.vendor_role,
+            'vendor_name': vendor.brand_name
         }
 
         return Response(data)
@@ -79,11 +79,11 @@ class VendorServiceListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return VendorService.objects.filter(
-            vendor=self.request.user.vendor_profile
+            vendor=self.request.vendor
         ).order_by('-created_at')
 
     def perform_create(self, serializer):
-        serializer.save(vendor=self.request.user.vendor_profile)
+        serializer.save(vendor=self.request.vendor)
 
 
 class VendorServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -96,12 +96,12 @@ class VendorServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return VendorService.objects.filter(
-            vendor=self.request.user.vendor_profile
+            vendor=self.request.vendor
         )
 
     def destroy(self, request, *args, **kwargs):
-        # Only VENDOR (owner) can delete services
-        if request.user.vendor_profile.operator_role != 'vendor':
+        # Only OWNER can delete services
+        if request.vendor_role != 'OWNER':
             return Response(
                 {'error': 'Only vendor owner can delete services'},
                 status=status.HTTP_403_FORBIDDEN
@@ -120,14 +120,14 @@ class ServiceTicketListCreateView(generics.ListCreateAPIView):
         service_id = self.kwargs.get('service_id')
         return ServiceTicket.objects.filter(
             service_id=service_id,
-            service__vendor=self.request.user.vendor_profile
+            service__vendor=self.request.vendor
         )
 
     def perform_create(self, serializer):
         service_id = self.kwargs.get('service_id')
         service = VendorService.objects.get(
             id=service_id,
-            vendor=self.request.user.vendor_profile
+            vendor=self.request.vendor
         )
         serializer.save(service=service)
 
@@ -141,7 +141,7 @@ class TicketSaleListView(generics.ListAPIView):
 
     def get_queryset(self):
         return TicketSale.objects.filter(
-            ticket_type__service__vendor=self.request.user.vendor_profile
+            ticket_type__service__vendor=self.request.vendor
         ).select_related('ticket_type__service', 'user').order_by('-purchase_date')
 
 
@@ -152,7 +152,7 @@ class SalesAnalyticsView(APIView):
     permission_classes = [IsVendorOperator]
 
     def get(self, request):
-        vendor = request.user.vendor_profile
+        vendor = request.vendor
         period = request.query_params.get('period', '30')  # days
         
         try:

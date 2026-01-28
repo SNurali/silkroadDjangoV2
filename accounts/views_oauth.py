@@ -144,6 +144,8 @@ class GoogleOAuthCallbackView(APIView):
                 f"&user_id={user.id}"
                 f"&user_name={user.name}"
                 f"&user_email={user.email}"
+                f"&role={user.role}"
+                f"&has_vendors={'true' if user.vendor_roles.exists() else 'false'}"
             )
             
             return redirect(redirect_url)

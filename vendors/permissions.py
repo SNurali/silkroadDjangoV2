@@ -1,79 +1,54 @@
-from rest_framework.permissions import BasePermission
+from rest_framework import permissions
 
-
-class IsVendorOwner(BasePermission):
+class IsVendorContext(permissions.BasePermission):
     """
-    Permission: Only the vendor owner (user linked to vendor profile).
-    """
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'vendor_profile') and
-            request.user.vendor_profile.operator_role == 'vendor'
-        )
-    
-    def has_object_permission(self, request, view, obj):
-        # For Vendor objects
-        if hasattr(obj, 'user'):
-            return obj.user == request.user and obj.operator_role == 'vendor'
-        # For related objects (VendorService, etc.)
-        if hasattr(obj, 'vendor'):
-            return obj.vendor.user == request.user and obj.vendor.operator_role == 'vendor'
-        return False
-
-
-class IsVendorOperator(BasePermission):
-    """
-    Permission: Vendor owner OR operator (both can manage services/tickets).
+    Allows access only to users currently in 'vendor' context.
+    The middleware must have already attached 'vendor' and 'vendor_role' to the request.
     """
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'vendor_profile')
-        )
-    
-    def has_object_permission(self, request, view, obj):
-        # For Vendor objects
-        if hasattr(obj, 'user'):
-            return obj.user == request.user
-        # For related objects (VendorService, ServiceTicket, etc.)
-        if hasattr(obj, 'vendor'):
-            return obj.vendor.user == request.user
-        # For TicketSale (check via ticket_type -> service -> vendor)
-        if hasattr(obj, 'ticket_type'):
-            return obj.ticket_type.service.vendor.user == request.user
-        return False
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Check if middleware attached the vendor
+        if not hasattr(request, 'active_context') or request.active_context != 'vendor':
+            return False
+            
+        if not request.vendor:
+            return False
+            
+        return True
 
-
-class CanManageServices(BasePermission):
+class IsVendorOwner(IsVendorContext):
     """
-    Permission: Can create/edit/delete services (both VENDOR and VENDOR_OPERATOR).
+    Allows access only if the user is an OWNER in the active vendor context.
     """
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'vendor_profile')
-        )
+        if not super().has_permission(request, view):
+            return False
+            
+        return request.vendor_role == 'OWNER'
 
-
-class CanSellTickets(BasePermission):
+class IsVendorOperator(IsVendorContext):
     """
-    Permission: Can sell tickets (both VENDOR and VENDOR_OPERATOR).
-    """
-    def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'vendor_profile')
-        )
-
-
-class CanManageVendorSettings(BasePermission):
-    """
-    Permission: Only VENDOR (owner) can change company settings.
+    Allows access if the user is an OWNER or OPERATOR.
     """
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'vendor_profile') and
-            request.user.vendor_profile.operator_role == 'vendor'
-        )
+        if not super().has_permission(request, view):
+            return False
+            
+        return request.vendor_role in ['OWNER', 'OPERATOR']
+
+class CanManageServices(IsVendorContext):
+    """OWNER and OPERATOR can manage services."""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and request.vendor_role in ['OWNER', 'OPERATOR']
+
+class CanSellTickets(IsVendorContext):
+    """OWNER and OPERATOR can sell/manage tickets."""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and request.vendor_role in ['OWNER', 'OPERATOR']
+
+class CanManageVendorSettings(IsVendorContext):
+    """Only OWNER can manage vendor settings."""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and request.vendor_role == 'OWNER'

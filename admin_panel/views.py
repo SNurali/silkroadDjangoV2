@@ -10,9 +10,9 @@ from django.db.models import Count, Sum, Case, When, IntegerField
 from django.utils import timezone
 from datetime import timedelta
 from accounts.models import User
-from vendors.models import Vendor
-from hotels.models import Sight, Ticket, TicketDetail, HotelComment
+from hotels.models import Sight, HotelComment
 from bookings.models import Booking
+from vendors.models import TicketSale, Vendor
 from django.contrib.auth.decorators import login_required
 import calendar
 
@@ -28,21 +28,24 @@ def admin_dashboard(request):
     
     # Get counts
     sights_count = Sight.objects.count()
-    total_income = Ticket.objects.filter(is_paid=True).aggregate(
-        total=Sum('total_amount')
-    )['total'] or 0
+    total_income_tickets = TicketSale.objects.filter(payment_status='paid')\
+        .aggregate(total=Sum('total_amount'))['total'] or 0
+    total_income_bookings = Booking.objects.filter(status='CONFIRMED')\
+        .aggregate(total=Sum('total_price'))['total'] or 0
+    total_income = total_income_tickets + total_income_bookings
+    
     vendors_count = Vendor.objects.count()
-    total_tickets = Ticket.objects.count()
+    total_tickets = TicketSale.objects.count()
     
     # Get popular services (top 4 by ticket count)
     popular_services = Sight.objects.annotate(
-        ticket_count=Count('tickets')
+        ticket_count=Count('ticketsales') # Using related_name if defined, or TicketSale.objects.filter(sight=...)
     ).order_by('-ticket_count')[:4]
     
     # Ticket stats (paid vs unpaid)
-    ticket_stats = Ticket.objects.aggregate(
-        paid=Count('id', filter=Case(When(is_paid=True, then=1))),
-        unpaid=Count('id', filter=Case(When(is_paid=False, then=1)))
+    ticket_stats = TicketSale.objects.aggregate(
+        paid=Count('id', filter=Case(When(payment_status='paid', then=1))),
+        unpaid=Count('id', filter=Case(When(payment_status='pending', then=1)))
     )
     
     paid_tickets = ticket_stats['paid'] or 0
@@ -52,11 +55,11 @@ def admin_dashboard(request):
     start_of_week = timezone.now() - timedelta(days=timezone.now().weekday())
     end_of_week = start_of_week + timedelta(days=6)
     
-    weekly_data = TicketDetail.objects.filter(
+    # Simplified weekly data using TicketSale
+    weekly_data = TicketSale.objects.filter(
         created_at__date__range=[start_of_week.date(), end_of_week.date()]
     ).values('created_at__week_day').annotate(
-        local_count=Count('id', filter=Case(When(guest_info__citizen=173, then=1))),
-        foreign_count=Count('id', filter=Case(When(guest_info__citizen__ne=173, then=1)))
+        count=Count('id')
     )
     
     # Prepare weekly series data
@@ -73,7 +76,7 @@ def admin_dashboard(request):
     recent_reviews = HotelComment.objects.select_related('user', 'hotel').order_by('-created_at')[:5]
     
     # Recent tickets
-    recent_tickets = Ticket.objects.select_related('created_by', 'sight').order_by('-created_at')[:5]
+    recent_tickets = TicketSale.objects.select_related('created_by', 'sight').order_by('-created_at')[:5]
     
     # Recent bookings
     recent_bookings = Booking.objects.select_related('user', 'hotel').order_by('-created_at')[:5]
@@ -136,10 +139,10 @@ def admin_vendor_detail(request, vendor_id):
         
         # Get vendor stats
         service_count = vendor.sights.count()
-        total_tickets = Ticket.objects.filter(vendor=vendor).count()
-        total_revenue = Ticket.objects.filter(
+        total_tickets = TicketSale.objects.filter(vendor=vendor).count()
+        total_revenue = TicketSale.objects.filter(
             vendor=vendor, 
-            is_paid=True
+            payment_status='paid'
         ).aggregate(total=Sum('total_amount'))['total'] or 0
         
         context = {
@@ -304,7 +307,7 @@ def admin_vendor_delete(request, vendor_id):
         return JsonResponse({'error': 'Vendor not found'}, status=404)
     
     # Check if vendor has associated tickets
-    if Ticket.objects.filter(vendor=vendor).exists():
+    if TicketSale.objects.filter(vendor=vendor).exists():
         return JsonResponse({'error': 'Cannot delete vendor with existing tickets.'}, status=400)
     
     # Clear user associations

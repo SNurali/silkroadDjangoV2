@@ -9,7 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Booking, Ticket
+from bookings.models import Booking
+from vendors.models import TicketSale
 from .pdf_generator import BookingPDFGenerator, TicketPDFGenerator
 
 
@@ -60,13 +61,13 @@ class TicketPDFDownloadView(APIView):
     def get(self, request, pk):
         # Get ticket (must belong to user)
         ticket = get_object_or_404(
-            Ticket,
+            TicketSale,
             pk=pk,
             created_by=request.user
         )
         
         # Check if paid (optional - can allow preview)
-        if not ticket.is_paid:
+        if ticket.payment_status != 'paid':
             return Response(
                 {"error": "Ticket must be paid before downloading"},
                 status=status.HTTP_400_BAD_REQUEST

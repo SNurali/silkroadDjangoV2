@@ -8,11 +8,16 @@ from django.utils import timezone
 from django.db.models import Avg, Count, Q
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
-from .models import Sight, Ticket, TicketDetail, HotelComment, Hotel
-from .serializers import TicketCreateSerializer, HotelCommentSerializer
+from .models import HotelComment, Hotel
+from .serializers import HotelCommentSerializer, HotelSerializer
+from bookings.models import Booking
+from bookings.serializers import BookingSerializer
+from analytics.recommendations import get_trending_hotels
 import base64
 import hashlib
 import json
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 class TicketPurchaseView(APIView):
     def post(self, request):
@@ -122,8 +127,7 @@ class CategoryListAPIView(generics.ListAPIView):
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from .services.emehmon import EMehmonService
-from .serializers import BookingSerializer, HotelSerializer
-from .models import Booking, Hotel
+from .models import Hotel
 
 class PersonInfoView(APIView):
     """
@@ -147,49 +151,7 @@ class PersonInfoView(APIView):
             return Response({"error": result['message']}, status=result.get('code', 400))
 
 
-class BookingViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Hotel Bookings.
-    Replicates legacy logic:
-    - Create (Pending)
-    - Check Availability
-    - List/Retrieve (filtered by user)
-    """
-    queryset = Booking.objects.all()
-    serializer_class = BookingSerializer
-    
-    def get_queryset(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return Booking.objects.none()
-        # Guests see their own, vendors see bookings for their hotels?
-        # For now unimplemented vendor logic, returning user's own bookings
-        return Booking.objects.filter(user=user)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user, booking_status='pending', payment_status='pending')
-
-    @action(detail=False, methods=['POST'])
-    def check_availability(self, request):
-        """
-        Check if rooms are available for given dates.
-        Legacy logic used overlapping date checks.
-        """
-        hotel_id = request.data.get('hotel_id')
-        check_in = request.data.get('check_in')
-        check_out = request.data.get('check_out')
-        # rooms_req = request.data.get('rooms', 1) 
-        
-        if not all([hotel_id, check_in, check_out]):
-             return Response({'error': 'Missing data'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Simplified Overlap Logic
-        # (StartA <= EndB) and (EndA >= StartB)
-        
-        # Here we would count existing confirmed bookings for this hotel/room_type
-        # For now, simplistic check or just pass (since legacy logic was commented out!)
-        
-        return Response({'available': True, 'message': 'Rooms available'})
 
 
 class HotelCommentListCreateView(generics.ListCreateAPIView):
@@ -289,3 +251,23 @@ class GenerateCaptchaView(APIView):
             'captcha_key': captcha_key,
             'captcha_image_url': captcha_url
         })
+
+@method_decorator(cache_page(60 * 60), name='dispatch')
+class TrendingHotelsAPIView(APIView):
+    """
+    Returns trending hotels based on ClickHouse analytics events.
+    Cached for 1 hour.
+    GET /api/hotels/trending/
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        limit = int(request.GET.get('limit', 10))
+        hotels = get_trending_hotels(limit=limit)
+        
+        # If no trending data yet (cold start), return top rated or recent
+        if not hotels.exists():
+            hotels = Hotel.objects.filter(is_active=True).order_by('-created_at')[:limit]
+            
+        serializer = HotelSerializer(hotels, many=True, context={'request': request})
+        return Response(serializer.data)

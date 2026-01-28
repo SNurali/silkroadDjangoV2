@@ -1,0 +1,86 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<style>
+    .finance-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 24px;
+        padding: 24px;
+    }
+
+    .card {
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 24px;
+        color: white;
+    }
+
+    .revenue-stat {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #10b981;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+
+    th,
+    td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #334155;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>💰 Financial Intelligence (ClickHouse)</h1>
+
+<div class="finance-grid">
+    <div class="card">
+        <h3>Platform Commission (10%)</h3>
+        <div class="revenue-stat" id="platform-revenue">Loading...</div>
+        <p>Estimated net income from confirmed bookings.</p>
+    </div>
+
+    <div class="card">
+        <h3>Top Vendors by Revenue</h3>
+        <table id="vendor-revenue-table">
+            <thead>
+                <tr>
+                    <th>Vendor ID</th>
+                    <th>Gross Revenue (UZS)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function fetchFinanceData() {
+        const response = await fetch('/admin/panel/analytics/finance/data/');
+        const data = await response.json();
+
+        document.getElementById('platform-revenue').innerText = new Intl.NumberFormat('uz-UZ', {
+            style: 'currency',
+            currency: 'UZS'
+        }).format(data.platform_revenue);
+
+        const tableBody = document.querySelector('#vendor-revenue-table tbody');
+        tableBody.innerHTML = '';
+        for (const [vendor_id, revenue] of Object.entries(data.vendor_revenue)) {
+            const row = `<tr><td>${vendor_id}</td><td>${new Intl.NumberFormat().format(revenue)}</td></tr>`;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        }
+    }
+    fetchFinanceData();
+</script>
+{% endblock %}

@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/chat/', include('support_chatbot.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/analytics/', include('analytics.urls')),
     
     # CAPTCHA
     path('captcha/', include('captcha.urls')),
@@ -38,6 +39,10 @@ urlpatterns = [
     
     # Admin Panel
     path('admin-panel/', include('admin_panel.urls')),
+    
+    # Integrations
+    path('api/integrations/emehmon/', include('integrations.emehmon.urls')),
+    path('api/integrations/payments/', include('integrations.payments.urls')),
 ]
 
 urlpatterns += i18n_patterns(

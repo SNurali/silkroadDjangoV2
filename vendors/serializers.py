@@ -1,8 +1,10 @@
 from rest_framework import serializers
 from .models import Vendor
 from locations.models import Region, District
-from hotels.models import Hotel, Sight, Ticket, Category
+from hotels.models import Hotel, Sight, Category
 from hotels.serializers import HotelSerializer, SightSerializer
+from bookings.models import Booking
+from .models import TicketSale
 
 class VendorDashboardSerializer(serializers.ModelSerializer):
     """
@@ -15,13 +17,16 @@ class VendorDashboardSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Vendor
-        fields = ['id', 'name', 'status', 'joined_at', 'stats', 'balance']
+        fields = ['id', 'brand_name', 'legal_name', 'status', 'joined_at', 'stats', 'balance']
         
     def get_status(self, obj):
-        return 'Active' if obj.is_active else 'Inactive'
+        return obj.status
         
     def get_joined_at(self, obj):
         return obj.created_at
+
+    def get_brand_name(self, obj):
+        return obj.brand_name
 
     def get_stats(self, obj):
         # Count hotels
@@ -29,21 +34,21 @@ class VendorDashboardSerializer(serializers.ModelSerializer):
         # Count sights
         sights_count = Sight.objects.filter(vendor=obj).count()
         # Count tickets/bookings (simple total for now)
-        tickets_sold = Ticket.objects.filter(vendor=obj, is_paid=True).count()
+        tickets_sold = TicketSale.objects.filter(vendor=obj, payment_status='paid').count()
+        bookings_count = Booking.objects.filter(hotel__vendor=obj, status='CONFIRMED').count()
         
         return {
             'hotels': hotels_count,
             'tours': sights_count,
             'bookings_today': 0, # Placeholder
-            'total_bookings': tickets_sold
+            'total_bookings': tickets_sold + bookings_count
         }
         
-    def get_balance(self, obj):
-        # Calculate total revenue from tickets
-        # Assuming we can sum(Ticket.total_amount)
+        # Calculate total revenue from tickets and bookings
         from django.db.models import Sum
-        revenue = Ticket.objects.filter(vendor=obj, is_paid=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        return revenue
+        ticket_revenue = TicketSale.objects.filter(vendor=obj, payment_status='paid').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        booking_revenue = Booking.objects.filter(hotel__vendor=obj, status='CONFIRMED').aggregate(Sum('total_price'))['total_price__sum'] or 0
+        return ticket_revenue + booking_revenue
 
 class VendorHotelSerializer(HotelSerializer):
     """
@@ -177,6 +182,23 @@ class VendorSightSerializer(SightSerializer):
 # Legacy / Registration Serializers (Restored)
 # --------------------------------------------------------------------------
 
+class VendorApplySerializer(serializers.ModelSerializer):
+    """
+    Serializer for new vendor applications.
+    """
+    class Meta:
+        model = Vendor
+        fields = [
+            'brand_name', 'legal_name', 'tax_id', 'contact_email', 
+            'phone', 'address', 'business_type', 'mfo', 
+            'checking_account', 'bank_name', 'oked', 'certificate_image'
+        ]
+
+    def validate_tax_id(self, value):
+        if Vendor.objects.filter(tax_id=value).exists():
+            raise serializers.ValidationError("A vendor with this Tax ID already exists.")
+        return value
+
 class VendorRegistrationSerializer(serializers.ModelSerializer):
     # Minimal registration serializer
     email = serializers.EmailField(write_only=True)
@@ -184,12 +206,8 @@ class VendorRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Vendor
-        fields = ['name', 'address', 'email', 'password', 'id_district', 'id_region', 'id_category']
-        extra_kwargs = {
-            'id_district': {'required': True},
-            'id_region': {'required': True},
-            'id_category': {'required': True}
-        }
+        fields = ['brand_name', 'address', 'email', 'password', 'id_district', 'id_region', 'id_category']
+        # Note: id_ fields might need adjustment if they were using legacy naming in models
         
     def create(self, validated_data):
         # This logic should be in View or Service usually, mimicking legacy logic if simple
@@ -216,12 +234,13 @@ class VendorSettingsSerializer(serializers.ModelSerializer):
     id_citizen = serializers.IntegerField(source='user.id_citizen', required=False, allow_null=True)
     
     # Vendor fields
-    company_name = serializers.CharField(source='name', required=False)
+    brand_name = serializers.CharField(source='brand_name', required=False)
+    legal_name = serializers.CharField(source='legal_name', required=False)
     bill_data = serializers.JSONField(required=False)
     attributes = serializers.JSONField(required=False)
     
     # Enterprise Legal Fields
-    inn = serializers.CharField(required=False, allow_blank=True)
+    tax_id = serializers.CharField(required=False, allow_blank=True)
     mfo = serializers.CharField(required=False, allow_blank=True)
     checking_account = serializers.CharField(required=False, allow_blank=True)
     business_type = serializers.CharField(required=False, allow_blank=True)
@@ -229,10 +248,11 @@ class VendorSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vendor
         fields = [
-            'id', 'company_name', 'phone', 'email', 'full_name',
+            'id', 'brand_name', 'legal_name', 'phone', 'email', 'full_name',
             'passport', 'dtb', 'sex', 'id_citizen',
             'bill_data', 'attributes',
-            'inn', 'mfo', 'checking_account', 'business_type'
+            'tax_id', 'mfo', 'checking_account', 'business_type',
+            'oked', 'bank_name'
         ]
         read_only_fields = ['email']
 

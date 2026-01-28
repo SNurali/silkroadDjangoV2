@@ -1,12 +1,14 @@
 from rest_framework import viewsets, permissions, status, views
+from silkroad_backend.permissions import IsVendorOwner, IsVendorOperator, IsObjectOwner
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 
-from .models import Vendor
+from .models import Vendor, TicketSale
 from .serializers import VendorDashboardSerializer, VendorHotelSerializer, VendorSightSerializer
-from hotels.models import Hotel, Sight, Ticket, Booking
+from hotels.models import Hotel, Sight
+from bookings.models import Booking
 
 User = get_user_model()
 
@@ -29,7 +31,9 @@ class VendorDashboardView(views.APIView):
         from django.db.models.functions import TruncDate
         from django.utils import timezone
         from datetime import timedelta
-        from hotels.models import Hotel, Sight, Ticket, TicketDetail, Booking
+        from hotels.models import Hotel, Sight
+        from bookings.models import Booking
+        from vendors.models import TicketSale
 
         # Filter Logic
         days_param = request.query_params.get('days', '30')
@@ -43,29 +47,29 @@ class VendorDashboardView(views.APIView):
         # --- ENHANCED STATS CALCULATION (Filtered) ---
         
         # 1. Ticket Revenue
-        ticket_revenue = TicketDetail.objects.filter(
-            ticket__vendor=vendor,
-            ticket__is_paid=True,
+        ticket_revenue = TicketSale.objects.filter(
+            vendor=vendor,
+            payment_status='paid',
             created_at__gte=start_date
-        ).aggregate(total=Sum('amount'))['total'] or 0
+        ).aggregate(total=Sum('total_amount'))['total'] or 0
 
         # Booking Revenue
         booking_revenue = Booking.objects.filter(
             hotel__vendor=vendor,
-            booking_status='confirmed',
+            status='CONFIRMED',
             created_at__gte=start_date
         ).aggregate(total=Sum('total_price'))['total'] or 0
         
         total_revenue = ticket_revenue + booking_revenue
         
         # 2. Total Orders
-        tickets_count = Ticket.objects.filter(vendor=vendor, created_at__gte=start_date).count()
+        tickets_count = TicketSale.objects.filter(vendor=vendor, created_at__gte=start_date).count()
         bookings_count = Booking.objects.filter(hotel__vendor=vendor, created_at__gte=start_date).count()
         
         total_orders = tickets_count + bookings_count
         
         # 3. Total Customers
-        ticket_customers = TicketDetail.objects.filter(ticket__vendor=vendor, created_at__gte=start_date).count()
+        ticket_customers = TicketSale.objects.filter(vendor=vendor, created_at__gte=start_date).count()
         total_customers = ticket_customers + bookings_count 
 
         # 4. Active Counts (Snapshot, not filtered by date)
@@ -98,7 +102,7 @@ class VendorDashboardView(views.APIView):
         # Bookings Daily
         daily_bookings = Booking.objects.filter(
             hotel__vendor=vendor,
-            booking_status='confirmed',
+            status='CONFIRMED',
             created_at__gte=start_date
         ).annotate(date=TruncDate('created_at'))\
          .values('date')\
@@ -141,8 +145,8 @@ class VendorDashboardView(views.APIView):
         }
 
         # --- RECENT BOOKINGS (Filtered) ---
-        recent_tickets = list(Ticket.objects.filter(
-            vendor=vendor, is_paid=True, created_at__gte=start_date
+        recent_tickets = list(TicketSale.objects.filter(
+            vendor=vendor, payment_status='paid', created_at__gte=start_date
         ).order_by('-created_at')[:5])
         
         recent_hotel_bookings = list(Booking.objects.filter(
@@ -151,12 +155,10 @@ class VendorDashboardView(views.APIView):
         
         combined = []
         for t in recent_tickets:
-            first_detail = t.details.first()
-            guest = first_detail.guest_name if first_detail else "Unknown"
             combined.append({
                 'id': f"T-{t.id}",
-                'user': guest,
-                'service': t.sight.name if t.sight else "Tour",
+                'user': "Guest", # Simplified
+                'service': "Tour",
                 'amount': t.total_amount,
                 'date': t.created_at,
                 'status': 'Paid'
@@ -165,11 +167,11 @@ class VendorDashboardView(views.APIView):
         for b in recent_hotel_bookings:
             combined.append({
                 'id': f"B-{b.id}",
-                'user': b.guest_name,
+                'user': "Guest",
                 'service': b.hotel.name if b.hotel else "Hotel",
                 'amount': b.total_price,
                 'date': b.created_at,
-                'status': b.booking_status.capitalize()
+                'status': b.status.capitalize()
             })
             
         combined.sort(key=lambda x: x['date'], reverse=True)
@@ -214,7 +216,7 @@ class VendorSettingsView(views.APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VendorHotelViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsVendorUser]
+    permission_classes = [IsVendorOwner | IsVendorOperator]
     serializer_class = VendorHotelSerializer
 
     def get_queryset(self):
@@ -225,7 +227,7 @@ class VendorHotelViewSet(viewsets.ModelViewSet):
         serializer.save(vendor=self.request.user.vendor_profile, created_by=self.request.user)
 
 class VendorSightViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsVendorUser]
+    permission_classes = [IsVendorOwner | IsVendorOperator]
     serializer_class = VendorSightSerializer
 
     def get_queryset(self):
@@ -271,10 +273,9 @@ class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for Vendors to manage incoming bookings for their hotels.
     """
-    permission_classes = [IsVendorUser]
+    permission_classes = [IsVendorOwner | IsVendorOperator]
     # We use BookingSerializer from hotels, or a specific VendorBookingSerializer?
-    # Let's import BookingSerializer
-    from hotels.serializers import BookingSerializer
+    from bookings.serializers import BookingSerializer
     serializer_class = BookingSerializer
 
     def get_queryset(self):
@@ -283,10 +284,10 @@ class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         booking = self.get_object()
-        if booking.booking_status == 'confirmed':
+        if booking.status == 'CONFIRMED':
              return Response({'detail': 'Already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
              
-        booking.booking_status = 'confirmed'
+        booking.status = 'CONFIRMED'
         
         # New Confirmation Fields
         from django.utils import timezone
@@ -346,16 +347,13 @@ class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
 
 class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for Vendors to manage incoming tour bookings (Tickets).
+    ViewSet for Vendors to manage incoming tour bookings (TicketSales).
     """
-    permission_classes = [IsVendorUser]
-    from hotels.serializers import TicketSerializer
-    serializer_class = TicketSerializer
-
+    permission_classes = [IsVendorOwner | IsVendorOperator]
+    # serializer_class = TicketSaleSerializer # Needs implementation if needed
+    
     def get_queryset(self):
-        # We might want to filter by pending? But managing all is better.
-        # Frontend can filter.
-        return Ticket.objects.filter(vendor=self.request.user.vendor_profile).order_by('-created_at')
+        return TicketSale.objects.filter(vendor=self.request.user.vendor_profile).order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):

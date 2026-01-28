@@ -2,7 +2,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.models import User
-from .models import Sight, Category, SightFacility, Ticket, Hotel, Room, RoomType, RoomPrice, Booking, TicketDetail, HotelComment
+from .models import Sight, Category, SightFacility, Hotel, Room, RoomType, RoomPrice, HotelComment
 from captcha.fields import CaptchaField
 
 
@@ -122,30 +122,7 @@ class HotelSerializer(serializers.ModelSerializer):
         return obj.deposit or obj.deposit_turizm or 0
 
 
-class TicketSerializer(serializers.ModelSerializer):
-    sight = SightSerializer(read_only=True)
-    user = UserSerializer(read_only=True, source='created_by')
 
-    class Meta:
-        model = Ticket
-        fields = (
-            'id',
-            'sight',
-            'total_qty',
-            'total_amount',
-            'is_paid',
-            'is_valid',
-            'created_at',
-            'user',
-        )
-        read_only_fields = (
-            'id',
-            'total_amount',
-            'is_paid',
-            'is_valid',
-            'created_at',
-            'user',
-        )
 
 
 class RoomTypeSerializer(serializers.ModelSerializer):
@@ -169,13 +146,7 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class BookingSerializer(serializers.ModelSerializer):
-    hotel_name = serializers.CharField(source='hotel.name', read_only=True)
-    
-    class Meta:
-        model = Booking
-        fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'updated_at')
+
 
 
 class GuestSerializer(serializers.Serializer):
@@ -200,10 +171,7 @@ class TicketCreateSerializer(serializers.Serializer):
         return value
 
 
-class TicketDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TicketDetail # Make sure TicketDetail is imported
-        fields = '__all__'
+
 
 
 class HotelCommentSerializer(serializers.ModelSerializer):
