@@ -20,6 +20,7 @@ from .views_agent import AgentDashboardAPIView
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = (permissions.AllowAny,)
+    throttle_scope = 'login'
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -49,6 +50,7 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     authentication_classes = []
     permission_classes = (permissions.AllowAny,)
+    throttle_scope = 'login' # Use login throttle for registration too
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)

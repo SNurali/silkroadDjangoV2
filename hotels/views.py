@@ -777,6 +777,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all().select_related('user', 'hotel', 'room_type')
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated, IsObjectOwner]
+    throttle_scope = 'booking'
 
     def get_queryset(self):
         # Users see their own bookings
