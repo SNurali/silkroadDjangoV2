@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 export default function BookingConfirmation() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
@@ -45,7 +45,7 @@ export default function BookingConfirmation() {
             window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Failed to download PDF:', err);
-            alert('Failed to download PDF. Please try again.');
+            alert(t('booking_conf.alert_fail_download'));
         } finally {
             setDownloading(false);
         }
@@ -69,9 +69,9 @@ export default function BookingConfirmation() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">Booking Not Found</h2>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">{t('booking_conf.not_found')}</h2>
                     <Link to="/profile/bookings" className="text-blue-600 hover:underline">
-                        View All Bookings
+                        {t('booking_conf.view_all')}
                     </Link>
                 </div>
             </div>
@@ -107,10 +107,10 @@ export default function BookingConfirmation() {
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
                     <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-3">
-                        Booking Confirmed!
+                        {t('booking_conf.success_title')}
                     </h1>
                     <p className="text-lg text-slate-600 dark:text-slate-400">
-                        Your reservation has been successfully created
+                        {t('booking_conf.success_subtitle')}
                     </p>
                 </div>
 
@@ -120,8 +120,8 @@ export default function BookingConfirmation() {
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
                         <div className="flex justify-between items-center flex-wrap gap-4">
                             <div>
-                                <h2 className="text-2xl font-bold mb-1">Booking #{booking.id}</h2>
-                                <p className="text-blue-100 text-sm">Created on {new Date(booking.created_at).toLocaleDateString()}</p>
+                                <h2 className="text-2xl font-bold mb-1">{t('booking_conf.booking_id')} #{booking.id}</h2>
+                                <p className="text-blue-100 text-sm">{t('booking_conf.created_on')} {new Date(booking.created_at).toLocaleDateString()}</p>
                             </div>
                             <div className="flex gap-3">
                                 <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusColor(booking.booking_status)} border-2 border-white`}>
@@ -140,11 +140,11 @@ export default function BookingConfirmation() {
                         <div>
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-blue-600" />
-                                Hotel Information
+                                {t('booking_conf.hotel_info')}
                             </h3>
                             <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6">
                                 <p className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{booking.hotel_name}</p>
-                                <p className="text-slate-600 dark:text-slate-400">Address information will be sent via email</p>
+                                <p className="text-slate-600 dark:text-slate-400">{t('booking_conf.address_note')}</p>
                             </div>
                         </div>
 
@@ -153,24 +153,24 @@ export default function BookingConfirmation() {
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                     <Calendar className="w-5 h-5 text-blue-600" />
-                                    Stay Details
+                                    {t('booking_conf.stay_details')}
                                 </h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-600 dark:text-slate-400">Check-in:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.check_in')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">
-                                            {new Date(booking.check_in).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                            {new Date(booking.check_in).toLocaleDateString(i18n.language === 'en' ? 'en-US' : (i18n.language === 'uz' ? 'uz-UZ' : 'ru-RU'), { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-600 dark:text-slate-400">Check-out:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.check_out')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">
-                                            {new Date(booking.check_out).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                            {new Date(booking.check_out).toLocaleDateString(i18n.language === 'en' ? 'en-US' : (i18n.language === 'uz' ? 'uz-UZ' : 'ru-RU'), { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                                         </span>
                                     </div>
                                     <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                                        <span className="text-slate-600 dark:text-slate-400">Duration:</span>
-                                        <span className="font-bold text-blue-600 dark:text-blue-400">{nights} night(s)</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.duration')}:</span>
+                                        <span className="font-bold text-blue-600 dark:text-blue-400">{nights} {t('booking_conf.nights')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -178,25 +178,25 @@ export default function BookingConfirmation() {
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                     <Users className="w-5 h-5 text-blue-600" />
-                                    Guest Details
+                                    {t('booking_conf.guest_details')}
                                 </h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-600 dark:text-slate-400">Name:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.name')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">{booking.guest_name}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-600 dark:text-slate-400">Email:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.email')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">{booking.guest_email}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-slate-600 dark:text-slate-400">Phone:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.phone')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">{booking.guest_phone}</span>
                                     </div>
                                     <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                                        <span className="text-slate-600 dark:text-slate-400">Guests:</span>
+                                        <span className="text-slate-600 dark:text-slate-400">{t('booking_conf.guests')}:</span>
                                         <span className="font-bold text-slate-900 dark:text-white">
-                                            {booking.adults} Adult(s), {booking.children} Child(ren)
+                                            {booking.adults} {t('booking_conf.adults')}, {booking.children} {t('booking_conf.children')}
                                         </span>
                                     </div>
                                 </div>
@@ -206,7 +206,7 @@ export default function BookingConfirmation() {
                         {/* Special Requests */}
                         {booking.special_requests && (
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Special Requests</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">{t('booking_conf.special_requests')}</h3>
                                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
                                     <p className="text-slate-700 dark:text-slate-300">{booking.special_requests}</p>
                                 </div>
@@ -217,11 +217,11 @@ export default function BookingConfirmation() {
                         <div>
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <CreditCard className="w-5 h-5 text-blue-600" />
-                                Payment Summary
+                                {t('booking_conf.payment_summary')}
                             </h3>
                             <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900/20 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-800">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xl font-bold text-slate-900 dark:text-white">Total Amount:</span>
+                                    <span className="text-xl font-bold text-slate-900 dark:text-white">{t('booking_conf.total_amount')}:</span>
                                     <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
                                         ${parseFloat(booking.total_price).toFixed(2)}
                                     </span>
@@ -237,7 +237,7 @@ export default function BookingConfirmation() {
                             className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Back to Bookings
+                            {t('booking_conf.back_to_bookings')}
                         </Link>
 
                         <div className="flex gap-3">
@@ -246,7 +246,7 @@ export default function BookingConfirmation() {
                                 className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-300 dark:border-slate-600 shadow-sm"
                             >
                                 <FileText className="w-4 h-4" />
-                                Preview
+                                {t('booking_conf.preview')}
                             </button>
                             <button
                                 onClick={handleDownloadPDF}
@@ -254,7 +254,7 @@ export default function BookingConfirmation() {
                                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Download className="w-4 h-4" />
-                                {downloading ? 'Downloading...' : 'Download PDF'}
+                                {downloading ? t('booking_conf.downloading') : t('booking_conf.download_pdf')}
                             </button>
                         </div>
                     </div>
@@ -265,12 +265,12 @@ export default function BookingConfirmation() {
                     <div className="flex items-start gap-3">
                         <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-1" />
                         <div>
-                            <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-2">Important Information</h4>
+                            <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-2">{t('booking_conf.important_info')}</h4>
                             <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
-                                <li>• Check-in time: 14:00 | Check-out time: 12:00</li>
-                                <li>• Please bring a valid ID for check-in</li>
-                                <li>• A confirmation email has been sent to {booking.guest_email}</li>
-                                <li>• For any inquiries, contact the hotel directly or reach us at support@silkroad.uz</li>
+                                <li>• {t('booking_conf.check_in_time')}</li>
+                                <li>• {t('booking_conf.bring_id')}</li>
+                                <li>• {t('booking_conf.email_sent', { email: booking.guest_email })}</li>
+                                <li>• {t('booking_conf.contact_support')}</li>
                             </ul>
                         </div>
                     </div>

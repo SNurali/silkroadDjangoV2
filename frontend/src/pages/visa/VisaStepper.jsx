@@ -4,6 +4,7 @@ import {
     Globe, Calendar, User, Camera,
     Mail, CreditCard, CheckCircle
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { twMerge } from 'tailwind-merge';
 
 // Official Palette Matches
@@ -12,15 +13,17 @@ const COMPLETED_COLOR = "bg-[#1B4A8D]"; // Deep Blue
 const INACTIVE_COLOR = "bg-slate-200 dark:bg-slate-700";
 
 const steps = [
-    { id: 1, title: 'Country', icon: Globe },
-    { id: 2, title: 'Date', icon: Calendar },
-    { id: 3, title: 'Personal', icon: User },
-    { id: 4, title: 'Photo', icon: Camera },
-    { id: 5, title: 'Activation', icon: Mail },
-    { id: 6, title: 'Payment', icon: CreditCard },
+    { id: 1, title: 'country', icon: Globe },
+    { id: 2, title: 'date', icon: Calendar },
+    { id: 3, title: 'personal', icon: User },
+    { id: 4, title: 'photo', icon: Camera },
+    { id: 5, title: 'activation', icon: Mail },
+    { id: 6, title: 'payment', icon: CreditCard },
 ];
 
 export default function VisaStepper({ currentStep = 1 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="w-full">
             {/* Desktop Stepper */}
@@ -66,7 +69,7 @@ export default function VisaStepper({ currentStep = 1 }) {
                                 "absolute mt-14 text-xs font-bold uppercase tracking-wider transition-colors duration-300",
                                 isActive ? "text-[#1B4A8D]" : isCompleted ? "text-[#1B4A8D]" : "text-slate-400"
                             )}>
-                                {step.title}
+                                {t(`visa.steps.${step.title}`)}
                             </div>
                         </div>
                     );
@@ -80,8 +83,10 @@ export default function VisaStepper({ currentStep = 1 }) {
                         {currentStep}
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 uppercase font-semibold">Step {currentStep} of {steps.length}</p>
-                        <p className="text-sm font-bold text-[#1B4A8D]">{steps[currentStep - 1].title}</p>
+                        <p className="text-xs text-slate-500 uppercase font-semibold">
+                            {t('visa.steps.mobile_label', { current: currentStep, total: steps.length })}
+                        </p>
+                        <p className="text-sm font-bold text-[#1B4A8D]">{t(`visa.steps.${steps[currentStep - 1].title}`)}</p>
                     </div>
                 </div>
                 {/* Progress Circle */}

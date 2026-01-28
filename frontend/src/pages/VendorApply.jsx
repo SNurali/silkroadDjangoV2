@@ -55,21 +55,21 @@ const VendorApply = () => {
 
     if (success) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-8 bg-slate-50">
+            <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-8 shadow-inner"
+                    className="w-24 h-24 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mb-8 shadow-inner"
                 >
                     <CheckCircle size={48} />
                 </motion.div>
-                <h1 className="text-4xl font-black mb-4 text-slate-900 uppercase tracking-tight">{t('vendor_apply.success_title')}</h1>
-                <p className="text-slate-600 mb-10 max-w-md text-lg leading-relaxed">
+                <h1 className="text-4xl font-black mb-4 text-slate-900 dark:text-white uppercase tracking-tight">{t('vendor_apply.success_title')}</h1>
+                <p className="text-slate-600 dark:text-slate-400 mb-10 max-w-md text-lg leading-relaxed">
                     {t('vendor_apply.success_text')}
                 </p>
                 <button
                     onClick={() => navigate('/')}
-                    className="bg-amber-600 text-white px-12 py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-amber-700 transition shadow-lg shadow-amber-200"
+                    className="bg-amber-600 text-white px-12 py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-amber-700 transition shadow-lg shadow-amber-200 dark:shadow-none"
                 >
                     {t('vendor_apply.back_home')}
                 </button>
@@ -77,29 +77,29 @@ const VendorApply = () => {
         );
     }
 
-    const inputClasses = "w-full px-4 py-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all placeholder:text-slate-400 font-medium";
-    const labelClasses = "text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block ml-1";
+    const inputClasses = "w-full px-4 py-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all placeholder:text-slate-400 font-medium shadow-inner";
+    const labelClasses = "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1";
 
     return (
-        <div className="min-h-screen bg-slate-50/50">
+        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-900 transition-colors duration-200">
             <div className="max-w-5xl mx-auto p-8 pt-32 pb-20">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-14 text-center"
                 >
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-widest mb-4 shadow-sm">
+                    <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-black uppercase tracking-widest mb-4 shadow-sm">
                         {t('vendor_apply.partners_badge')}
                     </span>
-                    <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 tracking-tighter leading-none">
+                    <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tighter leading-none">
                         {t('vendor_apply.title')}
                     </h1>
-                    <p className="text-slate-600 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
                         {t('vendor_apply.subtitle')}
                     </p>
                 </motion.div>
 
-                <form onSubmit={handleSubmit} className="bg-white rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] p-10 md:p-14 border border-slate-100 relative overflow-hidden">
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] p-10 md:p-14 border border-slate-100 dark:border-slate-700 relative overflow-hidden">
                     {/* Decorative Background Elements */}
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-amber-600 to-orange-600"></div>
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-50 rounded-full blur-3xl opacity-50"></div>
@@ -107,11 +107,11 @@ const VendorApply = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 relative z-10">
                         {/* Section 1: Basic Information */}
-                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 pb-5 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-5 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
                                 <Building size={20} />
                             </div>
-                            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">{t('vendor_apply.general_info')}</h2>
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('vendor_apply.general_info')}</h2>
                         </div>
 
                         <div className="space-y-1">
@@ -122,7 +122,7 @@ const VendorApply = () => {
                                 className={inputClasses}
                                 value={formData.brand_name}
                                 onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                                placeholder="e.g. Samarkand Tours"
+                                placeholder={t('vendor_apply.brand_placeholder')}
                             />
                         </div>
                         <div className="space-y-1">
@@ -133,7 +133,7 @@ const VendorApply = () => {
                                 className={inputClasses}
                                 value={formData.legal_name}
                                 onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                                placeholder="e.g. OOO 'Nurali Travel'"
+                                placeholder={t('vendor_apply.legal_placeholder')}
                             />
                         </div>
                         <div className="space-y-1">
@@ -159,11 +159,11 @@ const VendorApply = () => {
                         </div>
 
                         {/* Section 2: Banking Details */}
-                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 pb-5 mt-8 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-5 mt-8 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
                                 <Info size={20} />
                             </div>
-                            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">{t('vendor_apply.banking_details')}</h2>
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('vendor_apply.banking_details')}</h2>
                         </div>
 
                         <div className="space-y-1">
@@ -197,11 +197,11 @@ const VendorApply = () => {
                         </div>
 
                         {/* Section 3: Documents and Contacts */}
-                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 pb-5 mt-8 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                        <div className="md:col-span-2 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-5 mt-8 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
                                 <ShieldCheck size={20} />
                             </div>
-                            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">{t('vendor_apply.docs_activity')}</h2>
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('vendor_apply.docs_activity')}</h2>
                         </div>
 
                         <div className="space-y-1">
@@ -212,10 +212,11 @@ const VendorApply = () => {
                                 onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
                             >
                                 <option value="">{t('vendor_apply.select_type')}</option>
-                                <option value="Hotel">{t('navbar.hotels')}</option>
-                                <option value="Tours">{t('navbar.tours')}</option>
-                                <option value="Transport">{t('navbar.cabs')}</option>
-                                <option value="Sight">{t('navbar.sights', 'Sights')}</option>
+                                <option value="Hotel">{t('vendor_apply.type_hotel')}</option>
+                                <option value="Tours">{t('vendor_apply.type_tours')}</option>
+                                <option value="Transport">{t('vendor_apply.type_transport')}</option>
+                                <option value="Sight">{t('vendor_apply.type_attractions')}</option>
+                                <option value="Other">{t('vendor_apply.type_other')}</option>
                             </select>
                         </div>
 
@@ -231,9 +232,9 @@ const VendorApply = () => {
                                 />
                                 <label
                                     htmlFor="cert-upload"
-                                    className={`w-full flex items-center justify-between px-4 py-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${certificateFile ? 'border-amber-500 bg-amber-50/30' : 'border-slate-200 bg-slate-50 hover:border-amber-400 hover:bg-white'}`}
+                                    className={`w-full flex items-center justify-between px-4 py-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${certificateFile ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-900/10' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:border-amber-400 hover:bg-white dark:hover:bg-slate-800'}`}
                                 >
-                                    <span className={`text-sm font-medium truncate max-w-[200px] ${certificateFile ? 'text-amber-700' : 'text-slate-400'}`}>
+                                    <span className={`text-sm font-medium truncate max-w-[200px] ${certificateFile ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400'}`}>
                                         {certificateFile ? certificateFile.name : t('vendor_apply.upload_guvohnoma')}
                                     </span>
                                     <Upload size={18} className={certificateFile ? 'text-amber-600' : 'text-slate-400'} />
@@ -283,8 +284,8 @@ const VendorApply = () => {
                     </div>
 
                     {error && (
-                        <div className="mt-10 p-5 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-medium flex gap-3 items-center">
-                            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center shrink-0">!</div>
+                        <div className="mt-10 p-5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl text-sm font-medium flex gap-3 items-center">
+                            <div className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">!</div>
                             {typeof error === 'string' ? error : JSON.stringify(error)}
                         </div>
                     )}
@@ -294,7 +295,7 @@ const VendorApply = () => {
                         whileTap={{ scale: 0.99 }}
                         type="submit"
                         disabled={loading}
-                        className="mt-14 w-full bg-slate-900 text-white px-8 py-5 rounded-[20px] font-black text-xl uppercase tracking-widest hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
+                        className="mt-14 w-full bg-slate-900 dark:bg-indigo-600 text-white px-8 py-5 rounded-[20px] font-black text-xl uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-200 dark:shadow-none flex items-center justify-center gap-3"
                     >
                         {loading ? (
                             <>
