@@ -28,8 +28,8 @@ def admin_dashboard(request):
     
     # Get counts
     sights_count = Sight.objects.count()
-    total_income_tickets = TicketSale.objects.filter(payment_status='paid')\
-        .aggregate(total=Sum('total_amount'))['total'] or 0
+    total_income_tickets = TicketSale.objects.filter(status='PAID')\
+        .aggregate(total=Sum('price_paid'))['total'] or 0
     total_income_bookings = Booking.objects.filter(status='CONFIRMED')\
         .aggregate(total=Sum('total_price'))['total'] or 0
     total_income = total_income_tickets + total_income_bookings
@@ -44,8 +44,8 @@ def admin_dashboard(request):
     
     # Ticket stats (paid vs unpaid)
     ticket_stats = TicketSale.objects.aggregate(
-        paid=Count('id', filter=Case(When(payment_status='paid', then=1))),
-        unpaid=Count('id', filter=Case(When(payment_status='pending', then=1)))
+        paid=Count('id', filter=Case(When(status='PAID', then=1))),
+        unpaid=Count('id', filter=Case(When(status='NEW', then=1)))
     )
     
     paid_tickets = ticket_stats['paid'] or 0
@@ -57,8 +57,8 @@ def admin_dashboard(request):
     
     # Simplified weekly data using TicketSale
     weekly_data = TicketSale.objects.filter(
-        created_at__date__range=[start_of_week.date(), end_of_week.date()]
-    ).values('created_at__week_day').annotate(
+        purchase_date__date__range=[start_of_week.date(), end_of_week.date()]
+    ).values('purchase_date__week_day').annotate(
         count=Count('id')
     )
     
@@ -76,7 +76,7 @@ def admin_dashboard(request):
     recent_reviews = HotelComment.objects.select_related('user', 'hotel').order_by('-created_at')[:5]
     
     # Recent tickets
-    recent_tickets = TicketSale.objects.select_related('created_by', 'sight').order_by('-created_at')[:5]
+    recent_tickets = TicketSale.objects.select_related('user', 'ticket_type__service').order_by('-purchase_date')[:5]
     
     # Recent bookings
     recent_bookings = Booking.objects.select_related('user', 'hotel').order_by('-created_at')[:5]

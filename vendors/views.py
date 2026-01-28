@@ -315,7 +315,7 @@ class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         booking = self.get_object()
-        if booking.booking_status == 'cancelled':
+        if booking.status == 'CANCELLED':
              return Response({'detail': 'Already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Require Reason
@@ -323,7 +323,7 @@ class VendorBookingViewSet(viewsets.ReadOnlyModelViewSet):
         if not reason:
             return Response({'error': 'Reason is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
 
-        booking.booking_status = 'cancelled'
+        booking.status = 'CANCELLED'
         booking.rejection_reason = reason
         
         from django.utils import timezone
@@ -386,7 +386,7 @@ class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         ticket = self.get_object()
-        if ticket.booking_status == 'cancelled':
+        if ticket.status == 'CANCELLED':
              return Response({'detail': 'Already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Require Reason
@@ -394,7 +394,7 @@ class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
         if not reason:
             return Response({'error': 'Reason is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
 
-        ticket.booking_status = 'cancelled'
+        ticket.status = 'CANCELLED'
         ticket.is_valid = False
         ticket.rejection_reason = reason
         

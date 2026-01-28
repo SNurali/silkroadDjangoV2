@@ -36,6 +36,11 @@ class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Audit & Rejection
+    rejection_reason = models.TextField(blank=True, null=True, verbose_name=_('Причина отказа'))
+    confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='confirmed_bookings', verbose_name=_('Кем подтверждено'))
+    confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('Время подтверждения'))
+
     class Meta:
         db_table = 'tb_bookings_v2'
         verbose_name = _('Бронирование (v2)')

@@ -124,7 +124,7 @@ class BookingPDFGenerator:
         
         # Booking ID
         booking_id = Paragraph(
-            f"<b>Booking ID:</b> #{self.booking.id} | <b>Status:</b> {self.booking.booking_status.upper()}",
+            f"<b>Booking ID:</b> #{self.booking.id} | <b>Status:</b> {self.booking.status.upper()}",
             styles['InfoText']
         )
         elements.append(booking_id)
@@ -301,7 +301,7 @@ class BookingPDFGenerator:
         
         # Payment status
         payment_status = Paragraph(
-            f"<b>Payment Status:</b> {self.booking.payment_status.upper()}",
+            f"<b>Payment Status:</b> {self.booking.status.upper()}",
             styles['InfoText']
         )
         elements.append(Spacer(1, 3*mm))
@@ -340,7 +340,7 @@ class BookingPDFGenerator:
         canvas.saveState()
         
         # Add subtle watermark if pending payment
-        if self.booking.payment_status == 'pending':
+        if self.booking.status.lower() == 'new':
             canvas.setFont('Helvetica-Bold', 60)
             canvas.setFillColorRGB(0.9, 0.9, 0.9, alpha=0.3)
             canvas.translate(self.width/2, self.height/2)
@@ -457,12 +457,12 @@ class TicketPDFGenerator:
         elements.append(header)
         
         data = [
-            ['Attraction:', self.ticket.sight.name],
-            ['Address:', self.ticket.sight.address or 'See location on site'],
+            ['Service:', self.ticket.ticket_type.service.name],
+            ['Type:', self.ticket.ticket_type.service.type],
             ['Tickets:', f"{self.ticket.total_qty} person(s)"],
-            ['Total Amount:', f"${float(self.ticket.total_amount):.2f}"],
+            ['Total Amount:', f"${float(self.ticket.price_paid):.2f}"],
             ['Valid:', 'YES' if self.ticket.is_valid else 'NO - Payment Required'],
-            ['Issued:', self.ticket.created_at.strftime('%d %B %Y, %H:%M')],
+            ['Issued:', self.ticket.purchase_date.strftime('%d %B %Y, %H:%M')],
         ]
         
         table = Table(data, colWidths=[50*mm, 100*mm])

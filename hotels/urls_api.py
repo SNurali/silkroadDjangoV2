@@ -1,6 +1,10 @@
 from django.urls import path, include
 from . import views
 from . import views_api, views_payment, views_pdf
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'bookings', views.BookingViewSet, basename='api_booking')
 
 urlpatterns = [
     # Hotels (Root of api/hotels/)
@@ -35,4 +39,7 @@ urlpatterns = [
     path('emehmon/check/', views_payment.PersonInfoAPIView.as_view(), name='api_emehmon_check'),
     path('payment/register/', views_payment.CardRegisterAPIView.as_view(), name='api_payment_register'),
     path('payment/confirm/', views_payment.PaymentConfirmAPIView.as_view(), name='api_payment_confirm'),
+    
+    # Include Router (bookings)
+    path('', include(router.urls)),
 ]

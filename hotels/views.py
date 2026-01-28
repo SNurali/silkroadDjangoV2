@@ -903,7 +903,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         if not reason:
             return Response({'error': 'Reason is required for rejection'}, status=status.HTTP_400_BAD_REQUEST)
              
-        booking.booking_status = 'cancelled'
+        booking.status = 'CANCELLED' # Use uppercase to match choices
         booking.rejection_reason = reason
         from django.utils import timezone
         booking.confirmed_by = request.user # Acted by

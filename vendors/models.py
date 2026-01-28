@@ -146,6 +146,7 @@ class VendorService(models.Model):
     Услуга вендора (экскурсия, трансфер и т.д.).
     """
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='services', verbose_name=_('Вендор'))
+    name = models.CharField(max_length=255, default='Service', verbose_name=_('Название услуги'))
     type = models.CharField(max_length=100, verbose_name=_('Тип услуги'))
     description = models.TextField(verbose_name=_('Описание'))
     photos = models.JSONField(default=list, blank=True, null=True, verbose_name=_('Фотографий'))
@@ -196,10 +197,17 @@ class TicketSale(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ticket_purchases', verbose_name=_('Покупатель'))
     purchase_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='NEW', choices=[('NEW', 'New'), ('PAID', 'Paid'), ('USED', 'Used'), ('CANCELLED', 'Cancelled')])
+    total_qty = models.PositiveIntegerField(default=1, verbose_name=_('Кол-во билетов'))
     price_paid = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.ForeignKey('config_module.CurrencyRate', on_delete=models.PROTECT)
     
     qr_code = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Audit & Rejection
+    rejection_reason = models.TextField(blank=True, null=True, verbose_name=_('Причина отказа'))
+    confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='confirmed_tickets', verbose_name=_('Кем подтверждено'))
+    confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('Время подтверждения'))
+    is_valid = models.BooleanField(default=True, verbose_name=_('Действителен'))
 
     def mark_as_paid(self):
         """

@@ -48,3 +48,24 @@ def sync_booking_status_task(booking_id):
     logger.info(f"Syncing status for booking {booking_id}...")
     # TODO: Implement in Phase 3
     return "Synced (SIMULATED)"
+
+@shared_task
+def generate_booking_pdf_task(booking_id):
+    """
+    Async task to generate booking confirmation PDF.
+    """
+    from .models import Booking
+    from hotels.pdf_generator import BookingPDFGenerator
+    
+    logger.info(f"Generating PDF for booking {booking_id}...")
+    try:
+        booking = Booking.objects.get(id=booking_id)
+        generator = BookingPDFGenerator(booking)
+        pdf_buffer = generator.generate()
+        
+        return f"PDF generated for booking {booking_id}"
+    except Booking.DoesNotExist:
+        return f"Booking {booking_id} not found"
+    except Exception as e:
+        logger.error(f"Failed to generate booking PDF: {e}")
+        return str(e)

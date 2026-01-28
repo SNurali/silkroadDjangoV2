@@ -63,11 +63,11 @@ class TicketPDFDownloadView(APIView):
         ticket = get_object_or_404(
             TicketSale,
             pk=pk,
-            created_by=request.user
+            user=request.user
         )
         
         # Check if paid (optional - can allow preview)
-        if ticket.payment_status != 'paid':
+        if ticket.status != 'PAID':
             return Response(
                 {"error": "Ticket must be paid before downloading"},
                 status=status.HTTP_400_BAD_REQUEST
