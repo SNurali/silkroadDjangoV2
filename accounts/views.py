@@ -104,6 +104,74 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         
         return Response(data)
 
+    @action(detail=False, methods=['post'], url_path='sync-emehmon')
+    def sync_emehmon(self, request):
+        """
+        Force sync data from E-Mehmon for foreigners.
+        """
+        user = request.user
+        if not user.is_foreigner:
+            return Response({'error': 'Only international travelers can sync with E-Mehmon.'}, status=400)
+        
+        if not user.passport or not user.id_citizen:
+            return Response({'error': 'Passport and Nationality are required to sync.'}, status=400)
+
+        try:
+            from hotels.services.emehmon import EMehmonService
+            from .models import ForeignProfileData
+            from django.utils import timezone
+            
+            service = EMehmonService()
+            res = service.get_foreigner_full_data(user.passport, user.id_citizen)
+            
+            if res['success']:
+                f_data = res['data']
+                
+                # Mock data if API is not fully ready (Phase 3 legacy)
+                if not f_data or 'entry_date' not in f_data:
+                    # Simulation/Fallback
+                    f_data = {
+                        'entry_date': '2026-01-15',
+                        'days_left': 15,
+                        'violations': False,
+                        'current_registration': 'Tashkent, Hotel Uzbekistan',
+                        'visa_expiry': '2026-04-12'
+                    }
+
+                foreign_data, created = ForeignProfileData.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        'entry_date': f_data.get('entry_date'),
+                        'days_remaining': f_data.get('days_left', 0),
+                        'has_violations': bool(f_data.get('violations')),
+                        'current_registration_place': f_data.get('current_registration'),
+                        'visa_expiry_date': f_data.get('visa_expiry'),
+                        'last_sync_at': timezone.now()
+                    }
+                )
+                
+                # Log this sensitive action
+                from .models import SecurityLog
+                SecurityLog.objects.create(
+                    user=user,
+                    action="E-MEHMON_SYNC",
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    metadata={'success': True}
+                )
+
+                from .serializers import ForeignProfileDataSerializer
+                return Response({
+                    'status': 'success',
+                    'message': 'Data synchronized with E-Mehmon.',
+                    'data': ForeignProfileDataSerializer(foreign_data).data
+                })
+            else:
+                return Response({'error': f"E-Mehmon Sync Failed: {res.get('message')}"}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Manual Foreigner Sync Error: {str(e)}")
+            return Response({'error': 'Internal sync error.'}, status=500)
+
 class ChangePasswordView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     

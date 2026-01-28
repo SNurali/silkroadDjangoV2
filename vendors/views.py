@@ -358,10 +358,10 @@ class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         ticket = self.get_object()
-        if ticket.booking_status == 'confirmed':
+        if ticket.status == 'CONFIRMED':
              return Response({'detail': 'Already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
              
-        ticket.booking_status = 'confirmed'
+        ticket.status = 'CONFIRMED'
         ticket.is_valid = True
         
         from django.utils import timezone
@@ -369,6 +369,14 @@ class VendorTicketViewSet(viewsets.ReadOnlyModelViewSet):
         ticket.confirmed_by = request.user
         
         ticket.save()
+        
+        # Phase 9: Analytics logging
+        from silkroad_backend.analytics import AnalyticsService
+        AnalyticsService.log_event('ticket_confirmed', ticket.created_by.id if ticket.created_by else 0, {
+            'ticket_id': ticket.id,
+            'amount': float(ticket.total_amount),
+            'vendor_id': ticket.vendor.id if ticket.vendor else 0
+        })
         
         # Notify User
         if ticket.created_by:

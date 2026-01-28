@@ -258,6 +258,13 @@ class HotelListAPIView(generics.ListAPIView):
                 Q(region__name_ru__icontains=term) |
                 Q(region__name_uz__icontains=term)
             ).distinct()
+            
+            # Phase 9: Analytics logging
+            from silkroad_backend.analytics import AnalyticsService
+            AnalyticsService.log_search(
+                self.request.user.id if self.request.user.is_authenticated else 0,
+                {'location': term, 'results_count': qs.count()}
+            )
 
         # 2. Guest Capacity Filter
         adults = self.request.query_params.get('adults')
@@ -869,7 +876,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         if not booking.hotel.vendor or booking.hotel.vendor.user != request.user:
             return Response({'error': 'You are not the vendor of this hotel'}, status=status.HTTP_403_FORBIDDEN)
             
-        booking.booking_status = 'confirmed'
+        booking.status = 'CONFIRMED'
         
         # New fields
         from django.utils import timezone
@@ -877,6 +884,14 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.confirmed_at = timezone.now()
         
         booking.save()
+        
+        # Phase 9: Analytics logging
+        from silkroad_backend.analytics import AnalyticsService
+        AnalyticsService.log_booking(
+            booking.user.id if booking.user else 0,
+            booking.id,
+            booking.total_price
+        )
         
         # Notify User
         if booking.user:

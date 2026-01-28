@@ -26,12 +26,37 @@ class AnalyticsService:
         # Local Logging (ClickHouse local buffer simulation)
         logger.info(f"ANALYTICS_EVENT: {json.dumps(event_payload)}")
         
-        # Kafka Integration (Placeholder)
-        # try:
-        #    from confluent_kafka import Producer
-        #    # producer logic
-        # except ImportError:
-        #    pass
+        # ClickHouse Integration
+        AnalyticsService._push_to_clickhouse(event_type, user_id, data)
+
+    @staticmethod
+    def _push_to_clickhouse(event_type, user_id, data):
+        """
+        Internal method to push events to ClickHouse.
+        """
+        try:
+            from analytics.schema import get_client
+            from django.utils import timezone
+            client = get_client()
+            
+            # Simple mapping to booking_events table
+            # In a real system, we'd use multiple tables or a more generic one
+            client.execute(
+                'INSERT INTO booking_events (event_time, booking_id, user_id, vendor_id, booking_type, status, amount, created_at) VALUES',
+                [{
+                    'event_time': timezone.now(),
+                    'booking_id': data.get('booking_id', 0),
+                    'user_id': user_id or 0,
+                    'vendor_id': data.get('vendor_id', 0),
+                    'booking_type': event_type,
+                    'status': data.get('status', 'new'),
+                    'amount': float(data.get('amount', 0)),
+                    'created_at': timezone.now()
+                }]
+            )
+        except Exception as e:
+            # Silent fail for analytics to prevent blocking transactions
+            logger.error(f"ClickHouse Push Error: {e}")
 
     @staticmethod
     def get_user_stats(user_id):

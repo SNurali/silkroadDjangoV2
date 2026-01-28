@@ -196,7 +196,7 @@ class TicketSale(models.Model):
     ticket_type = models.ForeignKey(ServiceTicket, on_delete=models.PROTECT, related_name='sales', verbose_name=_('Тип билета'))
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ticket_purchases', verbose_name=_('Покупатель'))
     purchase_date = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default='NEW', choices=[('NEW', 'New'), ('PAID', 'Paid'), ('USED', 'Used'), ('CANCELLED', 'Cancelled')])
+    status = models.CharField(max_length=20, default='NEW', choices=[('NEW', 'New'), ('PAID', 'Paid'), ('CONFIRMED', 'Confirmed'), ('USED', 'Used'), ('CANCELLED', 'Cancelled')])
     total_qty = models.PositiveIntegerField(default=1, verbose_name=_('Кол-во билетов'))
     price_paid = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.ForeignKey('config_module.CurrencyRate', on_delete=models.PROTECT)

@@ -232,6 +232,11 @@ export const changePassword = async (data) => {
     return response.data;
 };
 
+export const syncEmehmonData = async () => {
+    const response = await api.post('/accounts/profile/sync-emehmon/');
+    return response.data;
+};
+
 // Notifications
 export const getNotifications = async () => {
     const response = await api.get('/notifications/');

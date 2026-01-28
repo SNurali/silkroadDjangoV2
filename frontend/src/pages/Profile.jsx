@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getProfile, updateProfile, changePassword, getCountries } from '../services/api';
+import { getProfile, updateProfile, changePassword, getCountries, syncEmehmonData } from '../services/api';
 import ProfileLayout from './profile/ProfileLayout';
 import ProfileSection from './profile/ProfileSection';
 import { clsx } from 'clsx';
@@ -128,6 +128,22 @@ const Profile = () => {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const handleSyncEmehmon = async () => {
+    setSyncing(true);
+    try {
+      const res = await syncEmehmonData();
+      setFormData(prev => ({ ...prev, foreign_data: res.data }));
+      setStatus({ type: 'success', message: t('profile.sync_success', 'Data synchronized with E-Mehmon!') });
+    } catch (e) {
+      console.error(e);
+      setStatus({ type: 'error', message: t('profile.sync_fail', 'Sync failed. Please check your passport details.') });
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-8">
       <div className="flex flex-col items-center gap-4">
@@ -163,16 +179,27 @@ const Profile = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-indigo-200">Visa Expiry</p>
-                    <p className="font-bold">12.04.2026</p>
+                    <p className="font-bold">{formData.foreign_data?.visa_expiry_date || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold text-indigo-200">Registration</p>
-                    <p className="font-bold">Active (Tashkent)</p>
+                    <p className="font-bold">{formData.foreign_data?.current_registration_place || 'No Active registration'}</p>
                   </div>
                 </div>
               </div>
-              <button className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg active:scale-95">
-                Re-Sync Data
+              <button
+                onClick={handleSyncEmehmon}
+                disabled={syncing}
+                className={clsx(
+                  "px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95",
+                  syncing ? "opacity-50 cursor-not-allowed" : "hover:bg-indigo-50"
+                )}>
+                {syncing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    Syncing...
+                  </div>
+                ) : 'Re-Sync Data'}
               </button>
             </div>
           </motion.div>
